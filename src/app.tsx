@@ -1,57 +1,56 @@
-import { useEffect, useRef, useState } from 'preact/hooks'
-import { AlphaTabApi, type json } from '@coderline/alphatab'
-
-const base = import.meta.env.BASE_URL
+import { useEffect } from 'preact/hooks'
+import type { JSX } from 'preact'
+import { store } from './editor/store'
+import { listFiles } from './persistence/db'
+import { importFiles } from './persistence/import'
+import { Sidebar } from './ui/Sidebar'
+import { ScoreView } from './ui/ScoreView'
 
 export function App() {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [api, setApi] = useState<AlphaTabApi | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
   useEffect(() => {
-    if (!containerRef.current) return
-
-    const instance = new AlphaTabApi(containerRef.current, {
-      core: {
-        file: `${base}sample.gp`,
-        fontDirectory: `${base}font/`,
-      },
-      player: {
-        enablePlayer: true,
-        enableCursor: true,
-        enableUserInteraction: true,
-        soundFont: `${base}soundfont/sonivox.sf3`,
-        scrollElement: containerRef.current,
-      },
-    } as json.SettingsJson)
-
-    instance.error.on((e) => {
-      console.error('alphaTab error', e)
-      setError(e.message)
-    })
-
-    setApi(instance)
-
-    return () => {
-      instance.destroy()
-    }
+    listFiles().then((files) => store.setState({ files }))
   }, [])
 
+  function onDrop(ev: JSX.TargetedDragEvent<HTMLDivElement>) {
+    ev.preventDefault()
+    const dt = ev.dataTransfer
+    if (!dt || dt.files.length === 0) return
+    importFiles(Array.from(dt.files))
+  }
+
+  function onDragOver(ev: JSX.TargetedDragEvent<HTMLDivElement>) {
+    ev.preventDefault()
+    if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'copy'
+  }
+
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif' }}>
-      <header style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #ddd', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+    <div
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+      style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        fontFamily: 'system-ui, sans-serif',
+      }}
+    >
+      <header
+        style={{
+          padding: '0.75rem 1rem',
+          borderBottom: '1px solid #ddd',
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'center',
+          background: '#fff',
+        }}
+      >
         <strong>fretwork</strong>
-        <span style={{ color: '#666', fontSize: '0.85rem' }}>Phase 0 spike — hardcoded sample</span>
-        <span style={{ flex: 1 }} />
-        <button type="button" onClick={() => api?.playPause()} disabled={!api}>Play / Pause</button>
-        <button type="button" onClick={() => api?.stop()} disabled={!api}>Stop</button>
+        <span style={{ color: '#666', fontSize: '0.85rem' }}>Phase 1 — viewer</span>
       </header>
-      {error && (
-        <div style={{ padding: '0.75rem 1rem', background: '#fee', color: '#900', fontSize: '0.85rem' }}>
-          {error}
-        </div>
-      )}
-      <div ref={containerRef} style={{ padding: '1rem' }} />
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <Sidebar />
+        <ScoreView />
+      </div>
     </div>
   )
 }
