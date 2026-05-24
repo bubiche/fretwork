@@ -5,6 +5,7 @@ import { listFiles } from './persistence/db'
 import { importFiles } from './persistence/import'
 import { Sidebar } from './ui/Sidebar'
 import { ScoreView } from './ui/ScoreView'
+import { Transport } from './ui/Transport'
 
 export function App() {
   useEffect(() => {
@@ -47,6 +48,7 @@ export function App() {
         <strong>fretwork</strong>
         <span style={{ color: '#666', fontSize: '0.85rem' }}>Phase 1 — viewer</span>
       </header>
+      <Transport />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <Sidebar />
         <ScoreView />

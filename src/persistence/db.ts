@@ -68,6 +68,14 @@ export async function touchLastOpened(id: string): Promise<void> {
   await db.put('meta', meta)
 }
 
+export async function renameFile(id: string, name: string): Promise<void> {
+  const db = await getDb()
+  const meta = await db.get('meta', id)
+  if (!meta) return
+  meta.name = name
+  await db.put('meta', meta)
+}
+
 export async function deleteFile(id: string): Promise<void> {
   const db = await getDb()
   const tx = db.transaction(['meta', 'files'], 'readwrite')

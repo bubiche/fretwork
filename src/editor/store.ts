@@ -1,3 +1,5 @@
+import type { AlphaTabApi } from '@coderline/alphatab'
+
 export type FileMeta = {
   id: string
   name: string
@@ -6,10 +8,35 @@ export type FileMeta = {
   lastOpenedAt: number
 }
 
+export type TransportState = {
+  playbackSpeed: number
+  metronome: boolean
+  countIn: boolean
+}
+
+export type TrackUiState = {
+  index: number
+  name: string
+  rendered: boolean
+  muted: boolean
+  soloed: boolean
+}
+
+export type LayoutModeOption = 'page' | 'horizontal'
+
+export type ViewState = {
+  zoom: number
+  layoutMode: LayoutModeOption
+}
+
 export type StoreState = {
   currentFileId: string | null
   files: FileMeta[]
   error: string | null
+  api: AlphaTabApi | null
+  transport: TransportState
+  tracks: TrackUiState[]
+  view: ViewState
 }
 
 type Selector<T> = (s: StoreState) => T
@@ -22,10 +49,25 @@ type Entry = {
   prev: unknown
 }
 
+export const DEFAULT_TRANSPORT: TransportState = {
+  playbackSpeed: 1,
+  metronome: false,
+  countIn: false,
+}
+
+export const DEFAULT_VIEW: ViewState = {
+  zoom: 1,
+  layoutMode: 'page',
+}
+
 const initialState: StoreState = {
   currentFileId: null,
   files: [],
   error: null,
+  api: null,
+  transport: DEFAULT_TRANSPORT,
+  tracks: [],
+  view: DEFAULT_VIEW,
 }
 
 class Store {

@@ -1,14 +1,17 @@
-import { useRef } from 'preact/hooks'
+import { useRef, useState } from 'preact/hooks'
 import type { JSX } from 'preact'
 import { useStore } from './hooks/useStore'
 import { store } from '../editor/store'
-import { listFiles, touchLastOpened } from '../persistence/db'
+import { listFiles, touchLastOpened, renameFile, deleteFile } from '../persistence/db'
 import { importFiles } from '../persistence/import'
+import { Tracks } from './Tracks'
 
 export function Sidebar() {
   const files = useStore((s) => s.files)
   const currentFileId = useStore((s) => s.currentFileId)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [draft, setDraft] = useState('')
 
   async function onPick(ev: JSX.TargetedEvent<HTMLInputElement, Event>) {
     const input = ev.currentTarget
@@ -19,9 +22,42 @@ export function Sidebar() {
   }
 
   async function open(id: string) {
+    if (editingId) return
     await touchLastOpened(id)
     const list = await listFiles()
     store.setState({ files: list, currentFileId: id, error: null })
+  }
+
+  function startRename(id: string, current: string) {
+    setEditingId(id)
+    setDraft(current)
+  }
+
+  async function commitRename(id: string) {
+    const name = draft.trim()
+    if (name && name !== files.find((f) => f.id === id)?.name) {
+      await renameFile(id, name)
+      const list = await listFiles()
+      store.setState({ files: list })
+    }
+    setEditingId(null)
+    setDraft('')
+  }
+
+  function cancelRename() {
+    setEditingId(null)
+    setDraft('')
+  }
+
+  async function onDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? This can't be undone.`)) return
+    await deleteFile(id)
+    const list = await listFiles()
+    const wasCurrent = store.getState().currentFileId === id
+    store.setState({
+      files: list,
+      ...(wasCurrent ? { currentFileId: null, error: null } : {}),
+    })
   }
 
   return (
@@ -56,32 +92,87 @@ export function Sidebar() {
         </p>
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-          {files.map((f) => (
-            <li key={f.id}>
-              <button
-                type="button"
-                onClick={() => open(f.id)}
+          {files.map((f) => {
+            const editing = editingId === f.id
+            const isCurrent = f.id === currentFileId
+            return (
+              <li
+                key={f.id}
                 style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  background: f.id === currentFileId ? '#e8ecff' : 'transparent',
-                  border: 'none',
-                  padding: '0.4rem 0.5rem',
-                  cursor: 'pointer',
+                  background: isCurrent ? '#e8ecff' : 'transparent',
                   borderRadius: 4,
-                  fontSize: '0.85rem',
+                  padding: '0.4rem 0.5rem',
                   marginBottom: 2,
                 }}
               >
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {f.name}
+                {editing ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={draft}
+                    onInput={(e) => setDraft((e.currentTarget as HTMLInputElement).value)}
+                    onBlur={() => commitRename(f.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commitRename(f.id)
+                      else if (e.key === 'Escape') cancelRename()
+                    }}
+                    style={{ width: '100%', fontSize: '0.85rem', padding: '2px 4px' }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => open(f.id)}
+                    style={{
+                      width: '100%',
+                      textAlign: 'left',
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                    }}
+                  >
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {f.name}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: '#888' }}>
+                      {(f.size / 1024).toFixed(1)} KB
+                    </div>
+                  </button>
+                )}
+                <div style={{ display: 'flex', gap: '0.4rem', marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => startRename(f.id, f.name)}
+                    disabled={editing}
+                    style={rowBtnStyle}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete(f.id, f.name)}
+                    style={rowBtnStyle}
+                  >
+                    Delete
+                  </button>
                 </div>
-                <div style={{ fontSize: '0.7rem', color: '#888' }}>{(f.size / 1024).toFixed(1)} KB</div>
-              </button>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
+      <Tracks />
     </aside>
   )
+}
+
+const rowBtnStyle = {
+  fontSize: '0.7rem',
+  padding: '1px 6px',
+  background: 'transparent',
+  border: '1px solid #ccc',
+  borderRadius: 3,
+  cursor: 'pointer',
+  color: '#555',
 }
