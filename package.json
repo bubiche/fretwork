@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@coderline/alphatab": "^1.8.2",
-    "idb": "^8.0.3",
     "preact": "^10.29.1"
   },
   "devDependencies": {
