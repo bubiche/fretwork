@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'preact/hooks'
-import type { AlphaTabApi, model } from '@coderline/alphatab'
+import { synth, type AlphaTabApi, type model } from '@coderline/alphatab'
 import { createAlphaTab } from '../alphatab/api'
 import { store, DEFAULT_TRANSPORT } from '../editor/store'
 import { useStore } from './hooks/useStore'
@@ -34,6 +34,12 @@ export function ScoreView() {
         })),
       })
       applyTransportToApi(instance, store.getState().transport)
+    })
+    instance.playerStateChanged.on((args) => {
+      const t = store.getState().transport
+      const playing = args.state === synth.PlayerState.Playing
+      if (t.playing === playing) return
+      store.setState({ transport: { ...t, playing } })
     })
     apiRef.current = instance
     store.setState({ api: instance })

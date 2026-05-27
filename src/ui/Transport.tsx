@@ -36,8 +36,13 @@ export function Transport() {
       }}
     >
       <div style={{ display: 'flex', gap: '0.25rem' }}>
-        <button type="button" onClick={() => api?.playPause()} disabled={!enabled}>
-          Play / Pause
+        <button
+          type="button"
+          onClick={() => api?.playPause()}
+          disabled={!enabled}
+          style={{ minWidth: '5ch' }}
+        >
+          {transport.playing ? 'Pause' : 'Play'}
         </button>
         <button type="button" onClick={() => api?.stop()} disabled={!enabled}>
           Stop

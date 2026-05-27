@@ -12,6 +12,7 @@ export type TransportState = {
   playbackSpeed: number
   metronome: boolean
   countIn: boolean
+  playing: boolean
 }
 
 export type TrackUiState = {
@@ -53,6 +54,7 @@ export const DEFAULT_TRANSPORT: TransportState = {
   playbackSpeed: 1,
   metronome: false,
   countIn: false,
+  playing: false,
 }
 
 export const DEFAULT_VIEW: ViewState = {
