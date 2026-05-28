@@ -5,6 +5,9 @@ import { store, DEFAULT_TRANSPORT } from '../editor/store'
 import { useStore } from './hooks/useStore'
 import { getFileBytes } from '../persistence/db'
 import { applyTransportToApi } from '../editor/transport'
+import { selectByBeat } from '../editor/selection'
+import { seekToBeat } from '../editor/transport'
+import { SelectionOverlay } from './SelectionOverlay'
 
 export function ScoreView() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -32,8 +35,19 @@ export function ScoreView() {
           muted: false,
           soloed: false,
         })),
+        selection: null,
       })
       applyTransportToApi(instance, store.getState().transport)
+    })
+    let lastClickSeek = false
+    const onMouseDownCapture = (e: MouseEvent) => {
+      lastClickSeek = e.metaKey || e.ctrlKey
+    }
+    const containerEl = containerRef.current
+    containerEl.addEventListener('mousedown', onMouseDownCapture, true)
+    instance.beatMouseDown.on((beat) => {
+      if (lastClickSeek) seekToBeat(instance, beat)
+      else selectByBeat(beat)
     })
     instance.playerStateChanged.on((args) => {
       const t = store.getState().transport
@@ -44,9 +58,10 @@ export function ScoreView() {
     apiRef.current = instance
     store.setState({ api: instance })
     return () => {
+      containerEl.removeEventListener('mousedown', onMouseDownCapture, true)
       instance.destroy()
       apiRef.current = null
-      store.setState({ api: null, transport: DEFAULT_TRANSPORT, tracks: [] })
+      store.setState({ api: null, transport: DEFAULT_TRANSPORT, tracks: [], selection: null })
     }
   }, [])
 
@@ -75,7 +90,12 @@ export function ScoreView() {
         ref={scrollRef}
         style={{ flex: 1, overflow: 'auto', position: 'relative', background: '#fafafa' }}
       >
-        <div ref={containerRef} style={{ padding: '1rem' }} />
+        <div style={{ padding: '1rem' }}>
+          <div style={{ position: 'relative' }}>
+            <div ref={containerRef} />
+            <SelectionOverlay />
+          </div>
+        </div>
         {!currentFileId && (
           <div
             style={{

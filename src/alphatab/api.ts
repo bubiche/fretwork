@@ -10,7 +10,7 @@ export function createAlphaTab(container: HTMLElement, scrollElement: HTMLElemen
     player: {
       enablePlayer: true,
       enableCursor: true,
-      enableUserInteraction: true,
+      enableUserInteraction: false,
       soundFont: `${base}soundfont/sonivox.sf3`,
       scrollElement,
     },

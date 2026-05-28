@@ -1,4 +1,5 @@
 import type { AlphaTabApi } from '@coderline/alphatab'
+import type { BeatRef } from './selection'
 
 export type FileMeta = {
   id: string
@@ -38,6 +39,8 @@ export type StoreState = {
   transport: TransportState
   tracks: TrackUiState[]
   view: ViewState
+  selection: BeatRef | null
+  selectedString: number
 }
 
 type Selector<T> = (s: StoreState) => T
@@ -70,6 +73,8 @@ const initialState: StoreState = {
   transport: DEFAULT_TRANSPORT,
   tracks: [],
   view: DEFAULT_VIEW,
+  selection: null,
+  selectedString: 1,
 }
 
 class Store {

@@ -6,11 +6,14 @@ import { importFiles } from './persistence/import'
 import { Sidebar } from './ui/Sidebar'
 import { ScoreView } from './ui/ScoreView'
 import { Transport } from './ui/Transport'
+import { attachKeyboard } from './input/keyboard'
 
 export function App() {
   useEffect(() => {
     listFiles().then((files) => store.setState({ files }))
   }, [])
+
+  useEffect(() => attachKeyboard(), [])
 
   function onDrop(ev: JSX.TargetedDragEvent<HTMLDivElement>) {
     ev.preventDefault()
@@ -47,6 +50,9 @@ export function App() {
       >
         <strong>fretwork</strong>
         <span style={{ color: '#666', fontSize: '0.85rem' }}>Phase 1 — viewer</span>
+        <span style={{ marginLeft: 'auto', color: '#888', fontSize: '0.8rem' }}>
+          Click a beat to select · ⌘/Ctrl-click or Enter to seek
+        </span>
       </header>
       <Transport />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
