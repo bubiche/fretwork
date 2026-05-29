@@ -41,6 +41,9 @@ export type StoreState = {
   view: ViewState
   selection: BeatRef | null
   selectedString: number
+  scoreVersion: number
+  canUndo: boolean
+  canRedo: boolean
 }
 
 type Selector<T> = (s: StoreState) => T
@@ -75,6 +78,9 @@ const initialState: StoreState = {
   view: DEFAULT_VIEW,
   selection: null,
   selectedString: 1,
+  scoreVersion: 0,
+  canUndo: false,
+  canRedo: false,
 }
 
 class Store {

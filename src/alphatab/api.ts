@@ -6,6 +6,10 @@ export function createAlphaTab(container: HTMLElement, scrollElement: HTMLElemen
   return new AlphaTabApi(container, {
     core: {
       fontDirectory: `${base}font/`,
+      // Populate BeatBounds.notes so the selection overlay can anchor to the exact note head
+      // (a beat's visualBounds spans both notation + tab staves, so deriving string rows from
+      // its height misplaces the highlight).
+      includeNoteBounds: true,
     },
     player: {
       enablePlayer: true,

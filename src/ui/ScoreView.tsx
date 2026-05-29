@@ -7,6 +7,7 @@ import { getFileBytes } from '../persistence/db'
 import { applyTransportToApi } from '../editor/transport'
 import { selectByBeat } from '../editor/selection'
 import { seekToBeat } from '../editor/transport'
+import { clearHistory } from '../editor/HistoryRouter'
 import { SelectionOverlay } from './SelectionOverlay'
 
 export function ScoreView() {
@@ -27,6 +28,8 @@ export function ScoreView() {
     instance.scoreLoaded.on((score) => {
       if (score === lastScore) return
       lastScore = score
+      // New score → old BeatRefs are meaningless; drop selection and undo history.
+      clearHistory()
       store.setState({
         tracks: score.tracks.map((t) => ({
           index: t.index,
@@ -61,6 +64,7 @@ export function ScoreView() {
       containerEl.removeEventListener('mousedown', onMouseDownCapture, true)
       instance.destroy()
       apiRef.current = null
+      clearHistory()
       store.setState({ api: null, transport: DEFAULT_TRANSPORT, tracks: [], selection: null })
     }
   }, [])

@@ -26,11 +26,13 @@ export function SelectionOverlay() {
   if (!bounds) return null
   const { x, y, w, h } = bounds.visualBounds
 
-  const staff = score.tracks[selection.trackIndex]?.staves[selection.staffIndex]
-  const stringCount = staff?.tuning.length ?? 0
-  const rowH = stringCount > 0 ? h / stringCount : 0
-  // String 1 = bottom; string N sits at offset (count - N) * rowH from top of bounds.
-  const stripeY = y + (stringCount - selectedString) * rowH
+  // Anchor the per-string highlight to the actual rendered note head (requires
+  // core.includeNoteBounds). Deriving string rows from the beat's height is wrong — that height
+  // spans both the notation and tab staves. When the selected string carries no note there's no
+  // note head to anchor to, so we show only the beat box (empty-string targeting feedback is
+  // deferred; alphaTab doesn't expose tab-line geometry cheaply).
+  const noteBounds =
+    bounds.notes?.find((n) => n.note.string === selectedString)?.noteHeadBounds ?? null
 
   return (
     <>
@@ -47,15 +49,16 @@ export function SelectionOverlay() {
           pointerEvents: 'none',
         }}
       />
-      {stringCount > 0 && (
+      {noteBounds && (
         <div
           style={{
             position: 'absolute',
-            left: x,
-            top: stripeY,
-            width: w,
-            height: rowH,
+            left: noteBounds.x - 2,
+            top: noteBounds.y - 2,
+            width: noteBounds.w + 4,
+            height: noteBounds.h + 4,
             background: 'rgba(50, 120, 255, 0.35)',
+            borderRadius: 2,
             pointerEvents: 'none',
           }}
         />
