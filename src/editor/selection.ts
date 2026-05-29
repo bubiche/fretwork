@@ -15,6 +15,18 @@ export function selectByBeat(beat: model.Beat): void {
   store.setState({ selection: ref })
 }
 
+/**
+ * Select the beat a clicked note belongs to AND set `selectedString` to that note's string, so a
+ * follow-up fret edit lands exactly where the user clicked. `beatMouseDown` only carries the beat
+ * (no string), which is why clicking used to leave the target string at whatever the arrows last
+ * left it — making fret entry feel like it hit a random string.
+ */
+export function selectByNote(note: model.Note): void {
+  const ref = beatRefFromBeat(note.beat)
+  if (!ref) return
+  store.setState({ selection: ref, selectedString: note.string })
+}
+
 export function clearSelection(): void {
   store.setState({ selection: null })
 }
@@ -66,6 +78,49 @@ export function moveString(dy: -1 | 1): void {
   store.setState({ selectedString: next })
 }
 
+/**
+ * Re-validate the stored selection after a structural edit (insert/delete) AND its undo/redo —
+ * the Phase-2-deferred `BeatRef` re-resolver (Risk 5). `BeatRef` is index-based and stable under
+ * value edits, but insert/delete shift indices, so a stored `beatIndex` may now point past the end
+ * (or at a different beat). Clamp it to a beat that still exists: same `beatIndex` if valid, else
+ * the bar's last beat; if the bar emptied, walk back to the previous non-empty bar. `selectedString`
+ * clamps to the tuning range. A value edit never invalidates a BeatRef, so this is a harmless no-op
+ * there — safe to call on every mutation. Pure clamp against the live score; no command needed.
+ */
+export function reValidateSelection(score: model.Score): void {
+  const { selection, selectedString } = store.getState()
+  if (!selection) return
+
+  let nextRef = selection
+  const voice = resolveVoice(score, selection)
+  if (!voice || voice.beats.length === 0) {
+    // Bar emptied (shouldn't happen — delete-last collapses to a rest — but stay defensive):
+    // walk back to the previous bar that has beats.
+    const staff = score.tracks[selection.trackIndex]?.staves[selection.staffIndex]
+    let barIndex = selection.barIndex - 1
+    let landed: BeatRef | null = null
+    while (staff && barIndex >= 0) {
+      const v = staff.bars[barIndex]?.voices[selection.voiceIndex]
+      if (v && v.beats.length > 0) {
+        landed = { ...selection, barIndex, beatIndex: v.beats.length - 1 }
+        break
+      }
+      barIndex--
+    }
+    if (landed) nextRef = landed
+  } else if (selection.beatIndex >= voice.beats.length) {
+    nextRef = { ...selection, beatIndex: voice.beats.length - 1 }
+  }
+
+  const staff = score.tracks[nextRef.trackIndex]?.staves[nextRef.staffIndex]
+  const count = staff?.tuning.length ?? selectedString
+  const nextString = Math.max(1, Math.min(count, selectedString))
+
+  if (nextRef !== selection || nextString !== selectedString) {
+    store.setState({ selection: nextRef, selectedString: nextString })
+  }
+}
+
 function beatRefFromBeat(beat: model.Beat): BeatRef | null {
   const voice = beat.voice
   const bar = voice.bar
@@ -96,7 +151,7 @@ export function resolveBeat(score: model.Score, at: BeatRef): model.Beat | null 
   return resolveVoice(score, at)?.beats[at.beatIndex] ?? null
 }
 
-function resolveVoice(score: model.Score, at: BeatRef): model.Voice | null {
+export function resolveVoice(score: model.Score, at: BeatRef): model.Voice | null {
   const track = score.tracks[at.trackIndex]
   if (!track) return null
   const staff = track.staves[at.staffIndex]

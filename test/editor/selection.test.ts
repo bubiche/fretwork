@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { store } from '../../src/editor/store'
-import { moveBeat, moveString, type BeatRef } from '../../src/editor/selection'
+import {
+  moveBeat,
+  moveString,
+  reValidateSelection,
+  resolveVoice,
+  type BeatRef,
+} from '../../src/editor/selection'
 import { makeMinimalScore } from '../fixtures/makeMinimalScore'
 import type { AlphaTabApi } from '@coderline/alphatab'
 
@@ -93,5 +99,46 @@ describe('moveString', () => {
     store.setState({ selectedString: 1 })
     moveString(1)
     expect(store.getState().selectedString).toBe(1)
+  })
+})
+
+describe('reValidateSelection (BeatRef re-resolver, Risk 5)', () => {
+  it('clamps a beatIndex past the end of the bar to the last beat', () => {
+    const s = makeMinimalScore({ bars: 2, beatsPerBar: 2 })
+    store.setState({ api: { score: s } as unknown as AlphaTabApi, selection: ref(0, 5), selectedString: 1 })
+    reValidateSelection(s)
+    expect(store.getState().selection).toEqual(ref(0, 1)) // 2-beat bar → last index is 1
+  })
+
+  it('leaves a still-valid selection untouched', () => {
+    const s = makeMinimalScore({ bars: 2, beatsPerBar: 2 })
+    store.setState({ api: { score: s } as unknown as AlphaTabApi, selection: ref(1, 0), selectedString: 3 })
+    reValidateSelection(s)
+    expect(store.getState().selection).toEqual(ref(1, 0))
+    expect(store.getState().selectedString).toBe(3)
+  })
+
+  it('clamps selectedString to the tuning range', () => {
+    const s = makeMinimalScore({ bars: 1, beatsPerBar: 1, strings: 6 })
+    store.setState({ api: { score: s } as unknown as AlphaTabApi, selection: ref(0, 0), selectedString: 99 })
+    reValidateSelection(s)
+    expect(store.getState().selectedString).toBe(6)
+  })
+
+  it('walks back to the previous bar when the selected bar emptied', () => {
+    const s = makeMinimalScore({ bars: 2, beatsPerBar: 2 })
+    // Empty bar 1's voice (defensive case — our commands never do this, but the clamp must cope).
+    const v = resolveVoice(s, ref(1, 0))!
+    v.beats.splice(0, v.beats.length)
+    store.setState({ api: { score: s } as unknown as AlphaTabApi, selection: ref(1, 0), selectedString: 1 })
+    reValidateSelection(s)
+    expect(store.getState().selection).toEqual(ref(0, 1)) // last beat of the previous bar
+  })
+
+  it('is a no-op when there is no selection', () => {
+    const s = makeMinimalScore()
+    store.setState({ api: { score: s } as unknown as AlphaTabApi, selection: null })
+    expect(() => reValidateSelection(s)).not.toThrow()
+    expect(store.getState().selection).toBeNull()
   })
 })

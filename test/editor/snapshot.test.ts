@@ -34,4 +34,28 @@ describe('scoreSnapshot', () => {
     score.tracks[0].staves[0].bars[0].voices[0].beats[0].duration = 8
     expect(scoreSnapshot(score)).not.toEqual(before)
   })
+
+  it('captures beat.dots and detects a dot mutation', () => {
+    const score = makeMinimalScore()
+    expect(scoreSnapshot(score).tracks[0].bars[0].voices[0].beats[0].dots).toBe(0)
+    const before = scoreSnapshot(score)
+    score.tracks[0].staves[0].bars[0].voices[0].beats[0].dots = 1
+    expect(scoreSnapshot(score)).not.toEqual(before)
+  })
+
+  it('normalizes note order by string (append order does not affect the snapshot)', () => {
+    const score = makeMinimalScore({ strings: 3 })
+    const beat = score.tracks[0].staves[0].bars[0].voices[0].beats[0]
+    const before = scoreSnapshot(score)
+    // Remove the string-1 note and re-add it (appends to the end) — array order now differs,
+    // but the snapshot must still be deep-equal because it sorts by string.
+    const note = beat.notes.find((n) => n.string === 1)!
+    beat.removeNote(note)
+    beat.addNote(note)
+    expect(beat.notes[beat.notes.length - 1].string).toBe(1) // appended, so order changed
+    expect(scoreSnapshot(score)).toEqual(before) // snapshot sorts, so still equal
+    expect(scoreSnapshot(score).tracks[0].bars[0].voices[0].beats[0].notes.map((n) => n.string)).toEqual([
+      1, 2, 3,
+    ])
+  })
 })

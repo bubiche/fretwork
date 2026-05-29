@@ -5,7 +5,7 @@ import { store, DEFAULT_TRANSPORT } from '../editor/store'
 import { useStore } from './hooks/useStore'
 import { getFileBytes } from '../persistence/db'
 import { applyTransportToApi } from '../editor/transport'
-import { selectByBeat } from '../editor/selection'
+import { selectByBeat, selectByNote } from '../editor/selection'
 import { seekToBeat } from '../editor/transport'
 import { clearHistory } from '../editor/HistoryRouter'
 import { SelectionOverlay } from './SelectionOverlay'
@@ -51,6 +51,12 @@ export function ScoreView() {
     instance.beatMouseDown.on((beat) => {
       if (lastClickSeek) seekToBeat(instance, beat)
       else selectByBeat(beat)
+    })
+    // Clicking a note head also picks its string (beatMouseDown carries no string). Fires alongside
+    // beatMouseDown; both set the same beat, and this additionally pins selectedString. Skipped on a
+    // seek-click so Cmd/Ctrl-click still just moves the playhead.
+    instance.noteMouseDown.on((note) => {
+      if (!lastClickSeek) selectByNote(note)
     })
     instance.playerStateChanged.on((args) => {
       const t = store.getState().transport

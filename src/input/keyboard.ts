@@ -1,7 +1,15 @@
 import { moveBeat, moveString } from '../editor/selection'
 import { seekToSelection } from '../editor/transport'
 import { undo, redo } from '../editor/HistoryRouter'
-import { touchSelectedFret } from '../editor/commands'
+import {
+  changeSelectedFret,
+  moveSelectedNote,
+  deleteSelectedNote,
+  stepSelectedDuration,
+  toggleSelectedDot,
+  insertBeatAfterSelection,
+  deleteSelectedBeat,
+} from '../editor/commands'
 
 export function attachKeyboard(): () => void {
   const handler = (e: KeyboardEvent) => {
@@ -33,22 +41,59 @@ export function attachKeyboard(): () => void {
         e.preventDefault()
         return
       case 'ArrowUp':
-        moveString(-1)
+        // Alt+↑ moves the selected NOTE up a string; plain ↑ moves the selection.
+        if (e.altKey) moveSelectedNote(-1)
+        else moveString(-1)
         e.preventDefault()
         return
       case 'ArrowDown':
-        moveString(1)
+        if (e.altKey) moveSelectedNote(1)
+        else moveString(1)
         e.preventDefault()
         return
       case 'Enter':
         seekToSelection()
         e.preventDefault()
         return
+      case 'Delete':
+      case 'Backspace':
+        // Cmd/Ctrl+Del deletes the whole beat; plain Del/Backspace deletes the selected note.
+        if (mod) deleteSelectedBeat()
+        else deleteSelectedNote()
+        e.preventDefault()
+        return
     }
 
-    // Touch hotkey — plain `t` only, so we don't hijack Cmd/Ctrl-T (new tab).
-    if (!mod && e.key.toLowerCase() === 't') {
-      touchSelectedFret()
+    // Duration keys (plain, no modifier). `+` only arrives as e.key==='+' with Shift held, so also
+    // accept `=` (same physical key). `-` shortens, `+`/`=` lengthens, `.` toggles the dot.
+    if (!mod) {
+      if (e.key === '-') {
+        stepSelectedDuration(-1)
+        e.preventDefault()
+        return
+      }
+      if (e.key === '+' || e.key === '=') {
+        stepSelectedDuration(1)
+        e.preventDefault()
+        return
+      }
+      if (e.key === '.') {
+        toggleSelectedDot()
+        e.preventDefault()
+        return
+      }
+      // Insert an empty beat after the selection (no Insert key on a Mac).
+      if (e.key.toLowerCase() === 'i') {
+        insertBeatAfterSelection()
+        e.preventDefault()
+        return
+      }
+    }
+
+    // Fret entry — plain digits 0–9 only (no modifier, so Cmd-1 / Ctrl-2 tab switching is safe).
+    // The dispatcher owns the multi-digit amend window (type `1` then `2` → fret 12).
+    if (!mod && e.key.length === 1 && e.key >= '0' && e.key <= '9') {
+      changeSelectedFret(Number(e.key))
       e.preventDefault()
       return
     }

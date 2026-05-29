@@ -30,6 +30,7 @@ type VoiceSnapshot = {
 
 type BeatSnapshot = {
   duration: number // alphaTab Duration enum value
+  dots: number // ChangeDuration toggles beat.dots (0 ↔ 1)
   notes: NoteSnapshot[]
 }
 
@@ -49,10 +50,17 @@ export function scoreSnapshot(score: model.Score): ScoreSnapshot {
         voices: bar.voices.map((voice) => ({
           beats: voice.beats.map((beat) => ({
             duration: beat.duration,
-            notes: beat.notes.map((note) => ({
-              string: note.string,
-              fret: note.fret,
-            })),
+            dots: beat.dots,
+            // Sort by string so undo-via-addNote (which appends) is snapshot-equal to the
+            // original regardless of array order. removeNote splices without reindexing and
+            // addNote appends, so a positional compare would spuriously fail across the whole
+            // note-command family; normalizing here kills that bug class (see PHASE_3 Decisions).
+            notes: beat.notes
+              .map((note) => ({
+                string: note.string,
+                fret: note.fret,
+              }))
+              .sort((a, b) => a.string - b.string),
           })),
         })),
       })),

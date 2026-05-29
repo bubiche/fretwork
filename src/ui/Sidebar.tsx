@@ -5,6 +5,7 @@ import { store } from '../editor/store'
 import { listFiles, touchLastOpened, renameFile, deleteFile } from '../persistence/db'
 import { importFiles } from '../persistence/import'
 import { Tracks } from './Tracks'
+import { KeyboardHelp } from './KeyboardHelp'
 
 export function Sidebar() {
   const files = useStore((s) => s.files)
@@ -163,6 +164,7 @@ export function Sidebar() {
         </ul>
       )}
       <Tracks />
+      <KeyboardHelp />
     </aside>
   )
 }

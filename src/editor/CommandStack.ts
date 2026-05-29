@@ -2,13 +2,21 @@ import type { model } from '@coderline/alphatab'
 
 /**
  * A single, reversible edit. `apply` and `undo` mutate the live alphaTab Score in place.
- * In Phase 2 the only Command is the no-op `TouchFretCommand`; Phase 3 adds real edits
- * against the same contract.
+ * Every editing command (ChangeFret/ChangeString/AddNote/DeleteNote/Duration/Insert/DeleteBeat)
+ * implements this contract; undo/redo both route through `apply`/`undo`.
  */
 export interface Command {
   apply(score: model.Score): void
   undo(score: model.Score): void
   describe(): string
+  /**
+   * How aggressively the renderer must rebuild after this edit. Lives on the Command (not as an
+   * `execute()` arg) so undo/redo re-layout identically. `'none'` (default) = value/note edits
+   * that `api.render()` picks up on its own (ChangeFret/ChangeString/AddNote/DeleteNote/BeatToRest).
+   * `'voice'`/`'score'` = structural/tick-changing edits (ChangeDuration/Insert/DeleteBeat) that
+   * need `finish()` to reindex/re-chain/regroup beams first. See HistoryRouter.afterMutation.
+   */
+  relayout?: 'none' | 'voice' | 'score'
 }
 
 /** Max entries kept on the undo stack; oldest are dropped on overflow (PLAN.md). */
@@ -29,32 +37,38 @@ export class CommandStack {
     this.getScore = getScore
   }
 
-  /** Apply `cmd`, push it, and clear the redo buffer. No-op if there's no score. */
-  execute(cmd: Command): void {
+  /** Apply `cmd`, push it, and clear the redo buffer. Returns the command run (for the router's
+   *  relayout hint), or null if there's no score. */
+  execute(cmd: Command): Command | null {
     const score = this.getScore()
-    if (!score) return
+    if (!score) return null
     cmd.apply(score)
     this.undoStack.push(cmd)
     if (this.undoStack.length > STACK_CAP) this.undoStack.shift()
     this.redoStack = []
+    return cmd
   }
 
-  undo(): void {
-    if (this.undoStack.length === 0) return
+  /** Returns the command undone (for the relayout hint), or null. */
+  undo(): Command | null {
+    if (this.undoStack.length === 0) return null
     const score = this.getScore()
-    if (!score) return
+    if (!score) return null
     const cmd = this.undoStack.pop()!
     cmd.undo(score)
     this.redoStack.push(cmd)
+    return cmd
   }
 
-  redo(): void {
-    if (this.redoStack.length === 0) return
+  /** Returns the command redone (for the relayout hint), or null. */
+  redo(): Command | null {
+    if (this.redoStack.length === 0) return null
     const score = this.getScore()
-    if (!score) return
+    if (!score) return null
     const cmd = this.redoStack.pop()!
     cmd.apply(score)
     this.undoStack.push(cmd)
+    return cmd
   }
 
   get canUndo(): boolean {
@@ -68,6 +82,28 @@ export class CommandStack {
   /** Number of undoable commands. Exposed for tests and the dev console log. */
   get depth(): number {
     return this.undoStack.length
+  }
+
+  /** The command currently at the top of the undo stack, or null. Used by the multi-digit
+   *  fret amend to verify it's still amending the entry it pushed (see `reExecuteTop`). */
+  peek(): Command | null {
+    return this.undoStack[this.undoStack.length - 1] ?? null
+  }
+
+  /**
+   * Re-run `apply` on the current top-of-stack without pushing a new entry. The multi-digit
+   * fret amend mutates the top command's target value in place (1 → 12) and calls this to make
+   * the change visible. NOT a no-op-safe operation on its own: callers MUST first confirm the
+   * top is the command they intend to amend (identity check via `peek`), or this silently
+   * re-applies the wrong command. Returns false if there's no score or no top command.
+   */
+  reExecuteTop(): boolean {
+    const score = this.getScore()
+    if (!score) return false
+    const cmd = this.undoStack[this.undoStack.length - 1]
+    if (!cmd) return false
+    cmd.apply(score)
+    return true
   }
 
   clear(): void {
