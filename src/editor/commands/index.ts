@@ -20,3 +20,22 @@ export {
 } from './ChangeDuration'
 export { InsertBeatCommand, insertBeatAfterSelection } from './InsertBeat'
 export { DeleteBeatCommand, deleteSelectedBeat } from './DeleteBeat'
+// ── Phase 4a effects ──────────────────────────────────────────────────────────────────────────
+export { SetNoteEffectCommand, SetBeatEffectCommand } from './effects/SetEffect'
+export {
+  toggleSelectedPalmMute,
+  toggleSelectedGhost,
+  toggleSelectedDead,
+  cycleSelectedVibrato,
+  stepSelectedDynamics,
+  VIBRATO_CYCLE,
+  DYNAMICS_LADDER,
+} from './effects/articulation'
+export {
+  TieCommand,
+  toggleSelectedLetRing,
+  toggleSelectedHammerPull,
+  tieSelectedNote,
+  setSelectedSlideOut,
+  setSelectedSlideIn,
+} from './effects/linked'

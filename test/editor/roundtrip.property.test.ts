@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import type { model } from '@coderline/alphatab'
 import type { Command } from '../../src/editor/CommandStack'
+import { model } from '@coderline/alphatab'
 import {
   ChangeFretCommand,
   ChangeStringCommand,
@@ -10,6 +11,9 @@ import {
   ChangeDurationCommand,
   InsertBeatCommand,
   DeleteBeatCommand,
+  SetNoteEffectCommand,
+  SetBeatEffectCommand,
+  TieCommand,
   DURATION_LADDER,
   MAX_FRET,
 } from '../../src/editor/commands'
@@ -131,6 +135,56 @@ const genDeleteBeat: Generator = (score, rand) => {
   return new DeleteBeatCommand(p.at)
 }
 
+// ── Phase 4a effect generators ────────────────────────────────────────────────────────────────
+// Each builds a single-field-set command against a random note (or beat) with a value GUARANTEED
+// to differ from the current one, so a non-null command always mutates the snapshot — keeping the
+// tripwire's mutation ratio honest. Linked effects round-trip finish-free because the snapshot
+// holds only settable flags (array-position-independent); their finish()-driven wiring is asserted
+// in effects/linked.test.ts, not here.
+
+/** A value in [0, count) guaranteed != current. */
+const diffEnum = (rand: () => number, current: number, count: number): number =>
+  (current + 1 + Math.floor(rand() * (count - 1))) % count
+
+/** Build a generator that flips a boolean note flag on a random note. */
+const noteFlagGen =
+  (key: 'isPalmMute' | 'isGhost' | 'isDead' | 'isLetRing' | 'isHammerPullOrigin',
+   relayout: 'none' | 'voice'): Generator =>
+  (score, rand) => {
+    const p = pickBeat(score, rand)
+    if (!p || p.beat.notes.length === 0) return null
+    const note = pick(rand, p.beat.notes)
+    return new SetNoteEffectCommand(p.at, note.string, key, !note[key], { relayout })
+  }
+
+/** Tie a random existing note (the real command we ship). Finish-free here, so it behaves like a
+ *  plain isTieDestination flip and round-trips cleanly; the finish()-driven wiring + fret-teardown
+ *  is asserted in effects/linked.test.ts. */
+const genTie: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p || p.beat.notes.length === 0) return null
+  const note = pick(rand, p.beat.notes)
+  if (note.isTieDestination) return null // apply-only, matches the dispatcher
+  return new TieCommand(p.at, note.string)
+}
+
+/** Set a note enum field to a different value. */
+const noteEnumGen =
+  (key: 'vibrato' | 'slideInType' | 'slideOutType', count: number, relayout: 'none' | 'voice'): Generator =>
+  (score, rand) => {
+    const p = pickBeat(score, rand)
+    if (!p || p.beat.notes.length === 0) return null
+    const note = pick(rand, p.beat.notes)
+    return new SetNoteEffectCommand(p.at, note.string, key, diffEnum(rand, note[key], count), { relayout })
+  }
+
+/** Set a random beat's dynamics to a different value (0–7). */
+const genDynamics: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p) return null
+  return new SetBeatEffectCommand(p.at, 'dynamics', diffEnum(rand, p.beat.dynamics, 8) as model.DynamicValue, { relayout: 'voice' })
+}
+
 const GENERATORS: Generator[] = [
   genChangeFret,
   genChangeString,
@@ -140,6 +194,17 @@ const GENERATORS: Generator[] = [
   genChangeDuration,
   genInsertBeat,
   genDeleteBeat,
+  // Phase 4a effects
+  noteFlagGen('isPalmMute', 'voice'),
+  noteFlagGen('isGhost', 'none'),
+  noteFlagGen('isDead', 'none'),
+  noteFlagGen('isLetRing', 'voice'),
+  noteFlagGen('isHammerPullOrigin', 'voice'),
+  genTie,
+  noteEnumGen('vibrato', 3, 'voice'),
+  noteEnumGen('slideInType', 3, 'voice'),
+  noteEnumGen('slideOutType', 7, 'voice'),
+  genDynamics,
 ]
 
 function runRoundTrip(seed: number, steps: number) {

@@ -6,6 +6,7 @@ import { importFiles } from './persistence/import'
 import { Sidebar } from './ui/Sidebar'
 import { ScoreView } from './ui/ScoreView'
 import { Transport } from './ui/Transport'
+import { EffectsPanel } from './ui/EffectsPanel'
 import { attachKeyboard } from './input/keyboard'
 
 export function App() {
@@ -55,6 +56,7 @@ export function App() {
         </span>
       </header>
       <Transport />
+      <EffectsPanel />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         <Sidebar />
         <ScoreView />

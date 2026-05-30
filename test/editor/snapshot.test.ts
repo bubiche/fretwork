@@ -18,7 +18,30 @@ describe('scoreSnapshot', () => {
     expect(snap.tracks[0].bars[0].voices[0].beats).toHaveLength(1)
     const notes = snap.tracks[0].bars[0].voices[0].beats[0].notes
     expect(notes).toHaveLength(6)
-    expect(notes[0]).toEqual({ string: 1, fret: 1 })
+    expect(notes[0]).toMatchObject({ string: 1, fret: 1 })
+    // Phase 4: effect fields are captured at their "off" defaults on a freshly-built note/beat.
+    expect(notes[0]).toMatchObject({
+      isPalmMute: false,
+      isGhost: false,
+      isDead: false,
+      vibrato: 0,
+      isLetRing: false,
+      isHammerPullOrigin: false,
+      slideInType: 0,
+      slideOutType: 0,
+      isTieDestination: false,
+      bendType: 0,
+      bendPoints: null,
+    })
+    const beat0 = snap.tracks[0].bars[0].voices[0].beats[0]
+    expect(beat0).toMatchObject({ whammyBarType: 0, tap: false, graceType: 0, chordId: null })
+  })
+
+  it('detects a note effect mutation (palm mute)', () => {
+    const score = makeMinimalScore()
+    const before = scoreSnapshot(score)
+    score.tracks[0].staves[0].bars[0].voices[0].beats[0].notes[0].isPalmMute = true
+    expect(scoreSnapshot(score)).not.toEqual(before)
   })
 
   it('detects a fret mutation', () => {

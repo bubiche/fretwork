@@ -2,6 +2,25 @@ import { model } from '@coderline/alphatab'
 import { resolveBeat, resolveVoice, type BeatRef } from './selection'
 
 /**
+ * Settable scalar note effect fields the editor writes (Phase 4). Boolean flags and enum values
+ * only — never derived `Note`-reference pointers (`hammerPullDestination`, `slideTarget`, …),
+ * which `finish()` owns. The 4a slice; 4b adds `harmonicType`/`harmonicValue`/`bendType`.
+ */
+export type NoteEffectField =
+  | 'isPalmMute'
+  | 'isGhost'
+  | 'isDead'
+  | 'isLetRing'
+  | 'isHammerPullOrigin'
+  | 'isTieDestination'
+  | 'vibrato'
+  | 'slideInType'
+  | 'slideOutType'
+
+/** Settable scalar beat effect fields (Phase 4). 4a: `dynamics`. 4b extends with whammy/tap/etc. */
+export type BeatEffectField = 'dynamics'
+
+/**
  * The single resolution point between an opaque `BeatRef` + string number and a live
  * alphaTab `Note`. Shared by Commands and tests so there's one implementation.
  *
@@ -34,6 +53,28 @@ export class ScoreMutator {
   changeFret(at: BeatRef, stringIndex: number, fret: number): void {
     const note = resolveNote(this.score, at, stringIndex)
     if (note) note.fret = fret
+  }
+
+  /**
+   * Write a single settable effect field on the note at `at`/`stringIndex` (Phase 4). Dumb by
+   * design: resolve, write, return — the Command owns capture-once/undo. Typed so `key` and
+   * `value` agree (a `vibrato` write only accepts a `VibratoType`). No-op if the string is empty.
+   */
+  setNoteField<K extends NoteEffectField>(
+    at: BeatRef,
+    stringIndex: number,
+    key: K,
+    value: model.Note[K],
+  ): void {
+    const note = resolveNote(this.score, at, stringIndex)
+    if (note) note[key] = value
+  }
+
+  /** Write a single settable effect field on the beat at `at` (Phase 4). Same contract as
+   *  `setNoteField` but beat-level (dynamics in 4a; whammy/tap/grace/chord/tremolo in 4b). */
+  setBeatField<K extends BeatEffectField>(at: BeatRef, key: K, value: model.Beat[K]): void {
+    const beat = resolveBeat(this.score, at)
+    if (beat) beat[key] = value
   }
 
   /**
