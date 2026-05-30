@@ -6,9 +6,9 @@ import { Settings, model, importer } from '@coderline/alphatab'
 // PHASE_4 §4b-0: every "verify against a real imported file" instruction resolves against an
 // effects-bearing fixture. `sample_whammy_dive_full_bend.gp4` ("Eruption", a real GP4 export)
 // carries bends, whammy dives, and pinch harmonics — enough to LOCK the bend/whammy value scale that
-// 4b-1's presets are built on. (It has NO named chords or grace notes — alphaTab's GP4 importer
-// drops the chord library, and the file has no grace beats — so the chord/grace verifications for
-// 4b-2/4b-3 still need their own fixture. Recorded in implementation_notes.md.)
+// 4b-1's presets are built on. (Eruption itself has no chord diagrams or grace beats, so the
+// chord/grace verifications for 4b-2/4b-3 use their own fixtures — alphaTab's GP4 importer preserves
+// chord libraries fine; sample_chord.gp4 imports 21 named chords with full diagram data.)
 
 const fixturePath = fileURLToPath(
   new URL('../fixtures/sample_whammy_dive_full_bend.gp4', import.meta.url),
