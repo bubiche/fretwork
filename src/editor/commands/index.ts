@@ -72,3 +72,14 @@ export {
   GRACE_OPTIONS,
   setSelectedGrace,
 } from './effects/Grace'
+// ── Phase 4b-3 effects: chord diagrams ──────────────────────────────────────────────────────────
+export {
+  SetChordCommand,
+  CHORD_LIBRARY,
+  CHORD_TUNING_LENGTH,
+  type ChordDef,
+  buildChord,
+  chordPickerEnabled,
+  setSelectedChord,
+  clearSelectedChord,
+} from './effects/Chord'

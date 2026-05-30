@@ -30,6 +30,11 @@ import {
   setSelectedHarmonic,
   GRACE_OPTIONS,
   setSelectedGrace,
+  CHORD_LIBRARY,
+  type ChordDef,
+  chordPickerEnabled,
+  setSelectedChord,
+  clearSelectedChord,
 } from '../editor/commands'
 
 /**
@@ -59,6 +64,9 @@ export function EffectsPanel() {
   const slideActive = !!note && (note.slideOutType !== 0 || note.slideInType !== 0)
   const tremoloActive = !!beat && beat.tremoloSpeed != null
   const harmonicActive = !!note && note.harmonicType !== model.HarmonicType.None
+  // Chord is beat-level but library-restricted to standard 6-string tuning — disable on bass/7-string.
+  const staff = beat ? beat.voice.bar.staff : null
+  const chordEnabled = !!beat && chordPickerEnabled(staff)
 
   return (
     <div style={barStyle}>
@@ -108,6 +116,14 @@ export function EffectsPanel() {
         <Toggle label="Tap" active={!!beat?.tap} disabled={!beat} onClick={toggleSelectedTap} />
         <HarmonicControl note={note} active={harmonicActive} disabled={!hasNote} />
         <GraceControl disabled={!hasNote} />
+      </Group>
+
+      <span style={groupDividerStyle} />
+
+      <Group title="Chord">
+        {/* Beat-level. The curated library is standard 6-string only, so the control disables itself
+            on any other tuning (chordEnabled). Title shows the assigned chord name. */}
+        <ChordControl chordId={beat?.chordId ?? null} disabled={!chordEnabled} />
       </Group>
 
       {!hasSelection && <span style={hintStyle}>Select a beat to edit effects</span>}
@@ -371,6 +387,77 @@ function GraceControl({ disabled }: { disabled: boolean }) {
   )
 }
 
+// ── Chord picker (beat-level; grouped by root note, "None" clears) ───────────────────────────────
+// 4b-3's owner choice: a single scrollable popover with chords grouped under root-note headers
+// (A, B, C…), reusing the existing popover/PopItem styling — no new dependency, scales to ~60. The
+// library is already authored grouped by root, so first-appearance order gives the natural sequence.
+function chordRoot(name: string): string {
+  const second = name[1]
+  return second === '#' || second === 'b' ? name.slice(0, 2) : name[0]
+}
+const CHORD_GROUPS: { root: string; defs: ChordDef[] }[] = (() => {
+  const groups: { root: string; defs: ChordDef[] }[] = []
+  for (const def of CHORD_LIBRARY) {
+    const root = chordRoot(def.name)
+    let g = groups.find((x) => x.root === root)
+    if (!g) {
+      g = { root, defs: [] }
+      groups.push(g)
+    }
+    g.defs.push(def)
+  }
+  return groups
+})()
+
+function ChordControl({ chordId, disabled }: { chordId: string | null; disabled: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <Toggle
+        label={`Chord${chordId ? `: ${chordId}` : ''} ▾`}
+        active={!!chordId}
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      />
+      {open && !disabled && (
+        <>
+          <div style={backdropStyle} onClick={() => setOpen(false)} />
+          <div style={chordPopoverStyle}>
+            <PopItem
+              label="None"
+              active={!chordId}
+              onClick={() => {
+                clearSelectedChord()
+                setOpen(false)
+              }}
+            />
+            {CHORD_GROUPS.map((g) => (
+              <div key={g.root}>
+                <div style={popLabelStyle}>{g.root}</div>
+                <div style={chordRowStyle}>
+                  {g.defs.map((def) => (
+                    <button
+                      key={def.name}
+                      type="button"
+                      onClick={() => {
+                        setSelectedChord(def)
+                        setOpen(false)
+                      }}
+                      style={chordChipStyle(chordId === def.name)}
+                    >
+                      {def.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
 // ── Small presentational helpers (vanilla inline styles, matching the rest of the UI) ───────────
 function Group({ title, children }: { title: string; children: ComponentChildren }) {
   return (
@@ -495,6 +582,32 @@ const popLabelStyle = {
   textTransform: 'uppercase' as const,
   padding: '4px 6px 2px',
 }
+// Chord popover is taller (grouped by root) → cap height and scroll; chords sit in wrap rows.
+const chordPopoverStyle = {
+  ...popoverStyle,
+  maxHeight: 320,
+  overflowY: 'auto' as const,
+  minWidth: 200,
+}
+const chordRowStyle = {
+  display: 'flex',
+  flexWrap: 'wrap' as const,
+  gap: 3,
+  padding: '0 4px 4px',
+}
+function chordChipStyle(active: boolean) {
+  return {
+    fontSize: '0.74rem',
+    padding: '2px 7px',
+    borderRadius: 4,
+    cursor: 'pointer',
+    border: `1px solid ${active ? '#5a6ee0' : '#ddd'}`,
+    background: active ? '#5a6ee0' : '#fafafa',
+    color: active ? '#fff' : '#333',
+    fontWeight: active ? 600 : 400,
+  }
+}
+
 function popItemStyle(active: boolean) {
   return {
     textAlign: 'left' as const,

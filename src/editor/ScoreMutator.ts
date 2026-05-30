@@ -126,6 +126,56 @@ export class ScoreMutator {
   }
 
   /**
+   * Register a chord diagram in the staff's lookup (Phase 4b-3). Routed through alphaTab's own
+   * `staff.addChord`, which is defensive in exactly the two ways the hand-built path is not: it
+   * lazy-inits `staff.chords` when it's `null` (the synthetic `makeMinimalScore` never sets it) and
+   * sets `chord.staff = staff` — the backref the renderer reads (`chord.staff.tuning.length`). Keyed
+   * by `chordId`; re-registering the same id overwrites harmlessly (so apply/redo are idempotent).
+   */
+  ensureChordRegistered(at: BeatRef, chordId: string, chord: model.Chord): void {
+    resolveBeat(this.score, at)?.voice.bar.staff.addChord(chordId, chord)
+  }
+
+  /** Point the beat at `at` at a registered chord (or clear it with `null`). The link is `chordId`;
+   *  `beat.chord` resolves it against the staff map. Dumb by design — the Command owns capture/undo. */
+  setChord(at: BeatRef, chordId: string | null): void {
+    const beat = resolveBeat(this.score, at)
+    if (beat) beat.chordId = chordId
+  }
+
+  /** True if any beat in the same staff as `at` references `chordId`. The chord-diagram overview band
+   *  renders every entry in `staff.chords`, so an orphaned registration (no beat points at it) shows a
+   *  ghost diagram — this is the test that lets {@link SetChordCommand} garbage-collect orphans. */
+  isChordReferenced(at: BeatRef, chordId: string): boolean {
+    const staff = resolveBeat(this.score, at)?.voice.bar.staff
+    if (!staff) return false
+    for (const bar of staff.bars)
+      for (const voice of bar.voices)
+        for (const beat of voice.beats) if (beat.chordId === chordId) return true
+    return false
+  }
+
+  /** Remove a chord registration from the staff lookup (orphan cleanup on apply). */
+  unregisterChord(at: BeatRef, chordId: string): void {
+    resolveBeat(this.score, at)?.voice.bar.staff.chords?.delete(chordId)
+  }
+
+  /** Shallow snapshot of the staff's chord map (clone, or `null` if unset) so a Command can restore
+   *  the exact prior registry on undo — bulletproof against add/orphan-removal bookkeeping. Chord
+   *  objects are shared by reference (we never mutate them in place; ids re-register fresh objects). */
+  snapshotChords(at: BeatRef): Map<string, model.Chord> | null {
+    const chords = resolveBeat(this.score, at)?.voice.bar.staff.chords
+    return chords ? new Map(chords) : null
+  }
+
+  /** Restore a chord-map snapshot taken by {@link snapshotChords}. Assigns a FRESH clone so a later
+   *  redo's `addChord` (which mutates the live map in place) can't corrupt the stored snapshot. */
+  restoreChords(at: BeatRef, snapshot: Map<string, model.Chord> | null): void {
+    const staff = resolveBeat(this.score, at)?.voice.bar.staff
+    if (staff) staff.chords = snapshot ? new Map(snapshot) : null
+  }
+
+  /**
    * Move the note from `fromString` to `toString` in place, keeping `noteStringLookup` consistent
    * (`delete` old key, `set` new). No-op (returns false) if there's no note on `fromString` or the
    * target string is already occupied — `Beat.getNoteOnString` reads the lookup, so leaving it

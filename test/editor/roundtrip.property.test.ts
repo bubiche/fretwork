@@ -18,6 +18,9 @@ import {
   SetWhammyCommand,
   SetTremoloCommand,
   InsertGraceBeatCommand,
+  SetChordCommand,
+  CHORD_LIBRARY,
+  buildChord,
   BEND_PRESETS,
   WHAMMY_PRESETS,
   DURATION_LADDER,
@@ -266,6 +269,19 @@ const genGrace: Generator = (score, rand) => {
   return new InsertGraceBeatCommand(p.at, note.string, model.GraceType.BeforeBeat)
 }
 
+/** Assign a curated chord (different from the beat's current one) to a random beat. Beat-level, so it
+ *  needs no note. Like genTremolo/genBend, pick a chordId that differs from the current one so a
+ *  non-null command always mutates the snapshot (keeps the tripwire's >0.9 ratio honest). The chord
+ *  registration in staff.chords isn't snapshotted, so this round-trips finish-free on chordId alone. */
+const genChord: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p) return null
+  const choices = CHORD_LIBRARY.filter((c) => c.name !== p.beat.chordId)
+  if (choices.length === 0) return null
+  const def = pick(rand, choices)
+  return new SetChordCommand(p.at, def.name, buildChord(def))
+}
+
 const GENERATORS: Generator[] = [
   genChangeFret,
   genChangeString,
@@ -294,6 +310,8 @@ const GENERATORS: Generator[] = [
   genHarmonic,
   genTremolo,
   genGrace,
+  // Phase 4b-3
+  genChord,
 ]
 
 function runRoundTrip(seed: number, steps: number) {

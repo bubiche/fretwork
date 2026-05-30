@@ -1,0 +1,68 @@
+[
+  { "name": "C", "strings": [0, 1, 0, 2, 3, -1] },
+  { "name": "Cm", "strings": [3, 4, 5, 5, 3, -1], "firstFret": 3, "barreFrets": [3] },
+  { "name": "C7", "strings": [0, 1, 3, 2, 3, -1] },
+  { "name": "Cmaj7", "strings": [0, 0, 0, 2, 3, -1] },
+  { "name": "Cm7", "strings": [3, 4, 3, 5, 3, -1], "firstFret": 3, "barreFrets": [3] },
+  { "name": "Csus2", "strings": [3, 3, 0, 0, 3, -1] },
+  { "name": "Csus4", "strings": [0, 1, 0, 3, 3, -1] },
+  { "name": "Cadd9", "strings": [0, 3, 0, 2, 3, -1] },
+
+  { "name": "C#", "strings": [4, 6, 6, 6, 4, -1], "firstFret": 4, "barreFrets": [4] },
+  { "name": "C#m", "strings": [4, 5, 6, 6, 4, -1], "firstFret": 4, "barreFrets": [4] },
+  { "name": "C#m7", "strings": [4, 5, 4, 6, 4, -1], "firstFret": 4, "barreFrets": [4] },
+
+  { "name": "D", "strings": [2, 3, 2, 0, -1, -1] },
+  { "name": "Dm", "strings": [1, 3, 2, 0, -1, -1] },
+  { "name": "D7", "strings": [2, 1, 2, 0, -1, -1] },
+  { "name": "Dmaj7", "strings": [2, 2, 2, 0, -1, -1] },
+  { "name": "Dm7", "strings": [1, 1, 2, 0, -1, -1] },
+  { "name": "Dsus2", "strings": [0, 3, 2, 0, -1, -1] },
+  { "name": "Dsus4", "strings": [3, 3, 2, 0, -1, -1] },
+
+  { "name": "E", "strings": [0, 0, 1, 2, 2, 0] },
+  { "name": "Em", "strings": [0, 0, 0, 2, 2, 0] },
+  { "name": "E7", "strings": [0, 0, 1, 0, 2, 0] },
+  { "name": "Emaj7", "strings": [0, 0, 1, 1, 2, 0] },
+  { "name": "Em7", "strings": [0, 0, 0, 0, 2, 0] },
+  { "name": "Esus2", "strings": [0, 0, 4, 4, 2, 0] },
+  { "name": "Esus4", "strings": [0, 0, 2, 2, 2, 0] },
+
+  { "name": "F", "strings": [1, 1, 2, 3, 3, 1], "barreFrets": [1] },
+  { "name": "Fm", "strings": [1, 1, 1, 3, 3, 1], "barreFrets": [1] },
+  { "name": "F7", "strings": [1, 1, 2, 1, 3, 1], "barreFrets": [1] },
+  { "name": "Fmaj7", "strings": [0, 1, 2, 3, -1, -1] },
+  { "name": "Fm7", "strings": [1, 1, 1, 1, 3, 1], "barreFrets": [1] },
+
+  { "name": "F#", "strings": [2, 2, 3, 4, 4, 2], "barreFrets": [2] },
+  { "name": "F#m", "strings": [2, 2, 2, 4, 4, 2], "barreFrets": [2] },
+  { "name": "F#7", "strings": [2, 2, 3, 2, 4, 2], "barreFrets": [2] },
+
+  { "name": "G", "strings": [3, 0, 0, 0, 2, 3] },
+  { "name": "Gm", "strings": [3, 3, 3, 5, 5, 3], "firstFret": 3, "barreFrets": [3] },
+  { "name": "G7", "strings": [1, 0, 0, 0, 2, 3] },
+  { "name": "Gmaj7", "strings": [2, 0, 0, 0, 2, 3] },
+  { "name": "Gm7", "strings": [3, 3, 3, 3, 5, 3], "firstFret": 3, "barreFrets": [3] },
+  { "name": "Gadd9", "strings": [3, 0, 2, 0, 2, 3] },
+
+  { "name": "G#m", "strings": [4, 4, 4, 6, 6, 4], "firstFret": 4, "barreFrets": [4] },
+
+  { "name": "A", "strings": [0, 2, 2, 2, 0, -1] },
+  { "name": "Am", "strings": [0, 1, 2, 2, 0, -1] },
+  { "name": "A7", "strings": [0, 2, 0, 2, 0, -1] },
+  { "name": "Amaj7", "strings": [0, 2, 1, 2, 0, -1] },
+  { "name": "Am7", "strings": [0, 1, 0, 2, 0, -1] },
+  { "name": "Asus2", "strings": [0, 0, 2, 2, 0, -1] },
+  { "name": "Asus4", "strings": [0, 3, 2, 2, 0, -1] },
+  { "name": "Aadd9", "strings": [0, 2, 4, 2, 0, -1] },
+
+  { "name": "Bb", "strings": [1, 3, 3, 3, 1, -1], "barreFrets": [1] },
+  { "name": "Bbm", "strings": [1, 2, 3, 3, 1, -1], "barreFrets": [1] },
+  { "name": "Bb7", "strings": [1, 3, 1, 3, 1, -1], "barreFrets": [1] },
+  { "name": "Bbmaj7", "strings": [1, 3, 2, 3, 1, -1], "barreFrets": [1] },
+
+  { "name": "B", "strings": [2, 4, 4, 4, 2, -1], "barreFrets": [2] },
+  { "name": "Bm", "strings": [2, 3, 4, 4, 2, -1], "barreFrets": [2] },
+  { "name": "B7", "strings": [2, 0, 2, 1, 2, -1] },
+  { "name": "Bm7", "strings": [2, 0, 2, 0, 2, -1] }
+]
