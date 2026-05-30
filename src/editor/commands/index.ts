@@ -83,3 +83,10 @@ export {
   setSelectedChord,
   clearSelectedChord,
 } from './effects/Chord'
+// ── Phase 5a structural edits: bar & measure family ─────────────────────────────────────────────
+export { SetTimeSignatureCommand, setSelectedTimeSignature } from './structural/SetTimeSignature'
+export { SetKeySignatureCommand, setSelectedKeySignature } from './structural/SetKeySignature'
+export { SetTempoCommand, setSelectedTempo } from './structural/SetTempo'
+export { InsertMeasureCommand, insertMeasureAfterSelection } from './structural/InsertMeasure'
+export { DeleteMeasureCommand, deleteSelectedMeasure } from './structural/DeleteMeasure'
+export { KEY_SIGNATURE_OPTIONS, type KeySignatureOption } from './structural/keys'

@@ -12,7 +12,19 @@ import type { model } from '@coderline/alphatab'
  */
 export type ScoreSnapshot = {
   title: string
+  // ── Phase 5a: MasterBar fields (shared across tracks). Bar-count lives here AND in each track's
+  // bars[], so insert/delete-measure round-trips are provable. Time sig + tempo are masterbar-level;
+  // key sig is per-Bar (per staff), captured in BarSnapshot below.
+  masterBars: MasterBarSnapshot[]
   tracks: TrackSnapshot[]
+}
+
+type MasterBarSnapshot = {
+  num: number // timeSignatureNumerator
+  denom: number // timeSignatureDenominator
+  common: boolean // timeSignatureCommon
+  // tempoAutomations reduced to settable coords, order preserved (Tempo markers at ratio 0 etc.)
+  tempo: { value: number; ratio: number }[]
 }
 
 type TrackSnapshot = {
@@ -21,6 +33,9 @@ type TrackSnapshot = {
 }
 
 type BarSnapshot = {
+  // Phase 5a: per-Bar key sig (current-track-only edits can diverge across tracks).
+  keySignature: number // KeySignature enum (−7..+7 fifths)
+  keySignatureType: number // KeySignatureType (major/minor)
   voices: VoiceSnapshot[]
 }
 
@@ -77,11 +92,19 @@ function bendPoints(points: model.BendPoint[] | null): BendPointSnapshot[] | nul
 export function scoreSnapshot(score: model.Score): ScoreSnapshot {
   return {
     title: score.title,
+    masterBars: score.masterBars.map((mb) => ({
+      num: mb.timeSignatureNumerator,
+      denom: mb.timeSignatureDenominator,
+      common: mb.timeSignatureCommon,
+      tempo: mb.tempoAutomations.map((a) => ({ value: a.value, ratio: a.ratioPosition })),
+    })),
     tracks: score.tracks.map((track) => ({
       name: track.name,
       // v1 only touches staff 0 (BeatRef.staffIndex is always 0). The snapshot mirrors that
       // scope; multi-staff fidelity isn't an editor invariant this phase needs to protect.
       bars: (track.staves[0]?.bars ?? []).map((bar) => ({
+        keySignature: bar.keySignature,
+        keySignatureType: bar.keySignatureType,
         voices: bar.voices.map((voice) => ({
           beats: voice.beats.map((beat) => ({
             duration: beat.duration,

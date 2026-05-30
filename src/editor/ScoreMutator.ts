@@ -277,4 +277,40 @@ export class ScoreMutator {
     beat.voice = voice
     voice.beats.splice(index, 0, beat)
   }
+
+  /**
+   * Reassign `index` + the `previous`/`next` chain links for every `MasterBar` and every staff's
+   * `Bar`, to match their current array positions. MUST be called after any mid-array splice of
+   * `score.masterBars` or `staff.bars` (insert/delete measure) BEFORE `finish()`.
+   *
+   * ⚠ Phase 5 spike finding (contradicts the original PHASE_5 plan): `score.finish()` does NOT
+   * rebuild these. alphaTab sets `Bar.index`/`MasterBar.index` and the chain links only at *add*
+   * time (`Staff.addBar`/`Score.addMasterBar`), and its own structural maintenance only ever
+   * appends/pops at the END — never splices mid-array. `Bar.masterBar` is a getter
+   * `score.masterBars[this.index]`, so a stale `index` after a splice points out of bounds and
+   * `Voice.finish` crashes (`getFermata` on undefined). `MasterBar.finish` also reads
+   * `previousMasterBar.start`, so the chain must be coherent before finish. This helper is pure
+   * pointer/index work — no `finish()` — so it runs inside command `apply`/`undo`, keeping the
+   * finish-free property test honest while `afterMutation` handles the `relayout:'score'` finish().
+   */
+  relinkStructure(): void {
+    const mbs = this.score.masterBars
+    for (let i = 0; i < mbs.length; i++) {
+      const mb = mbs[i]
+      mb.index = i
+      mb.previousMasterBar = i > 0 ? mbs[i - 1] : null
+      mb.nextMasterBar = i < mbs.length - 1 ? mbs[i + 1] : null
+    }
+    for (const track of this.score.tracks) {
+      for (const staff of track.staves) {
+        const bars = staff.bars
+        for (let i = 0; i < bars.length; i++) {
+          const bar = bars[i]
+          bar.index = i
+          bar.previousBar = i > 0 ? bars[i - 1] : null
+          bar.nextBar = i < bars.length - 1 ? bars[i + 1] : null
+        }
+      }
+    }
+  }
 }

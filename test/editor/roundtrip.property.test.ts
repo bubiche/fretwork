@@ -25,6 +25,12 @@ import {
   WHAMMY_PRESETS,
   DURATION_LADDER,
   MAX_FRET,
+  SetTimeSignatureCommand,
+  SetKeySignatureCommand,
+  SetTempoCommand,
+  InsertMeasureCommand,
+  DeleteMeasureCommand,
+  KEY_SIGNATURE_OPTIONS,
 } from '../../src/editor/commands'
 import { scoreSnapshot } from '../../src/editor/snapshot'
 import type { BeatRef } from '../../src/editor/selection'
@@ -282,6 +288,65 @@ const genChord: Generator = (score, rand) => {
   return new SetChordCommand(p.at, def.name, buildChord(def))
 }
 
+// ── Phase 5a structural generators (bar & measure family) ────────────────────────────────────────
+// Each targets a random masterbar/bar. Time/key/tempo pick a value GUARANTEED to differ from the
+// current one (like genChord) so a non-null command always mutates the (now masterbar-aware)
+// snapshot; insert/delete always change the bar count. These round-trip finish-free — relinkStructure
+// (index/chain repair) runs inside apply/undo; finish-safety is guarded separately in
+// structural-integrity.test.ts on a real multi-track fixture.
+
+/** Pick a random barIndex on track 0 (beatIndex 0; only barIndex matters for these commands). */
+function pickBarRef(score: model.Score, rand: () => number): BeatRef | null {
+  const n = score.masterBars.length
+  if (n === 0) return null
+  return { trackIndex: 0, staffIndex: 0, voiceIndex: 0, barIndex: Math.floor(rand() * n), beatIndex: 0 }
+}
+
+const genSetTimeSignature: Generator = (score, rand) => {
+  const at = pickBarRef(score, rand)
+  if (!at) return null
+  const cur = score.masterBars[at.barIndex]
+  // Guarantee a different numerator → the (num,denom,common) tuple differs → snapshot mutates.
+  const num = ((cur.timeSignatureNumerator - 1 + 1 + Math.floor(rand() * 31)) % 32) + 1
+  const denom = pick(rand, [1, 2, 4, 8, 16, 32])
+  return new SetTimeSignatureCommand(at, { num, denom, common: false })
+}
+
+const genSetKeySignature: Generator = (score, rand) => {
+  const at = pickBarRef(score, rand)
+  if (!at) return null
+  const bar = score.tracks[0].staves[0].bars[at.barIndex]
+  // Pick an option differing from the current (fifths, type).
+  const options = KEY_SIGNATURE_OPTIONS.filter(
+    (o) => o.fifths !== bar.keySignature || o.type !== bar.keySignatureType,
+  )
+  const o = pick(rand, options)
+  return new SetKeySignatureCommand(at, o.fifths, o.type)
+}
+
+const genSetTempo: Generator = (score, rand) => {
+  const at = pickBarRef(score, rand)
+  if (!at) return null
+  const marker = score.masterBars[at.barIndex].tempoAutomations.find((a) => a.ratioPosition === 0)
+  const current = marker?.value ?? 0
+  let bpm = 40 + Math.floor(rand() * 240) // 40..279
+  if (bpm === current) bpm = bpm === 279 ? 278 : bpm + 1
+  return new SetTempoCommand(at, bpm)
+}
+
+const genInsertMeasure: Generator = (score, rand) => {
+  const at = pickBarRef(score, rand)
+  if (!at) return null
+  return new InsertMeasureCommand(at)
+}
+
+const genDeleteMeasure: Generator = (score, rand) => {
+  if (score.masterBars.length <= 1) return null // mirror the dispatcher's only-measure guard
+  const at = pickBarRef(score, rand)
+  if (!at) return null
+  return new DeleteMeasureCommand(at)
+}
+
 const GENERATORS: Generator[] = [
   genChangeFret,
   genChangeString,
@@ -312,6 +377,12 @@ const GENERATORS: Generator[] = [
   genGrace,
   // Phase 4b-3
   genChord,
+  // Phase 5a structural (bar & measure family)
+  genSetTimeSignature,
+  genSetKeySignature,
+  genSetTempo,
+  genInsertMeasure,
+  genDeleteMeasure,
 ]
 
 function runRoundTrip(seed: number, steps: number) {

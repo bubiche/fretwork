@@ -35,6 +35,12 @@ import {
   chordPickerEnabled,
   setSelectedChord,
   clearSelectedChord,
+  setSelectedTimeSignature,
+  setSelectedKeySignature,
+  setSelectedTempo,
+  insertMeasureAfterSelection,
+  deleteSelectedMeasure,
+  KEY_SIGNATURE_OPTIONS,
 } from '../editor/commands'
 
 /**
@@ -67,6 +73,17 @@ export function EffectsPanel() {
   // Chord is beat-level but library-restricted to standard 6-string tuning — disable on bass/7-string.
   const staff = beat ? beat.voice.bar.staff : null
   const chordEnabled = !!beat && chordPickerEnabled(staff)
+
+  // ── Bar / Measure (Phase 5a) ──────────────────────────────────────────────────────────────────
+  // Bar-level controls reflect the SELECTED bar and need only a selection (no note). Time sig is on
+  // the shared MasterBar; key sig is per-Bar on the SELECTED track's staff (current-track-only).
+  const selMaster = score && selection ? (score.masterBars[selection.barIndex] ?? null) : null
+  const selStaff = score && selection ? (score.tracks[selection.trackIndex]?.staves[selection.staffIndex] ?? null) : null
+  const selBar = selStaff && selection ? (selStaff.bars[selection.barIndex] ?? null) : null
+  const tempoMarker =
+    selMaster?.tempoAutomations.find((a) => a.type === model.AutomationType.Tempo && a.ratioPosition === 0) ?? null
+  const hasBar = !!selMaster && !!selBar
+  const canDelete = !!score && score.masterBars.length > 1
 
   return (
     <div style={barStyle}>
@@ -124,6 +141,33 @@ export function EffectsPanel() {
         {/* Beat-level. The curated library is standard 6-string only, so the control disables itself
             on any other tuning (chordEnabled). Title shows the assigned chord name. */}
         <ChordControl chordId={beat?.chordId ?? null} disabled={!chordEnabled} />
+      </Group>
+
+      <span style={groupDividerStyle} />
+
+      <Group title="Bar / Measure">
+        {/* Bar-level inspector: reflects the selected bar and writes on change. Time sig propagates
+            across masterbars until the next change; key sig is current-track-only; tempo marker sits
+            at bar start. Insert adds an empty measure after the selected bar; delete removes it. */}
+        <TimeSigControl
+          num={selMaster?.timeSignatureNumerator ?? 4}
+          denom={selMaster?.timeSignatureDenominator ?? 4}
+          disabled={!hasBar}
+        />
+        <KeySigControl
+          fifths={selBar?.keySignature ?? model.KeySignature.C}
+          type={selBar?.keySignatureType ?? model.KeySignatureType.Major}
+          disabled={!hasBar}
+        />
+        <TempoControl
+          key={`tempo-${selection?.barIndex ?? 'x'}-${tempoMarker?.value ?? 'none'}`}
+          value={tempoMarker?.value ?? null}
+          placeholder={score?.tempo ?? 120}
+          disabled={!hasBar}
+        />
+        <span style={dividerStyle} />
+        <Toggle label="Insert measure" active={false} disabled={!hasBar} onClick={insertMeasureAfterSelection} />
+        <Toggle label="Delete measure" active={false} disabled={!hasBar || !canDelete} onClick={deleteSelectedMeasure} />
       </Group>
 
       {!hasSelection && <span style={hintStyle}>Select a beat to edit effects</span>}
@@ -458,6 +502,147 @@ function ChordControl({ chordId, disabled }: { chordId: string | null; disabled:
   )
 }
 
+// ── Bar / Measure controls (Phase 5a) ────────────────────────────────────────────────────────────
+const TS_DENOMINATORS = [1, 2, 4, 8, 16, 32]
+
+/** A number input that commits on Enter/blur (not per-keystroke, so a half-typed "1→12" doesn't fire
+ *  two commands). Re-seeds its local text whenever the external `value` changes (selection moves) via
+ *  the `key` the parent sets. Invalid/out-of-range or unchanged input reverts silently. */
+function NumberCommit({
+  value,
+  min,
+  max,
+  disabled,
+  onCommit,
+}: {
+  value: number
+  min: number
+  max: number
+  disabled: boolean
+  onCommit: (v: number) => void
+}) {
+  const [text, setText] = useState(String(value))
+  const commit = () => {
+    const v = Math.round(Number(text))
+    if (Number.isFinite(v) && v >= min && v <= max && v !== value) onCommit(v)
+    else setText(String(value))
+  }
+  return (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      value={text}
+      disabled={disabled}
+      style={numInputStyle}
+      onInput={(e) => setText((e.target as HTMLInputElement).value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+      }}
+    />
+  )
+}
+
+function TimeSigControl({ num, denom, disabled }: { num: number; denom: number; disabled: boolean }) {
+  return (
+    <span style={inlineControlStyle}>
+      <span style={{ color: disabled ? '#bbb' : '#555' }}>Time</span>
+      <NumberCommit
+        key={`ts-num-${num}`}
+        value={num}
+        min={1}
+        max={32}
+        disabled={disabled}
+        onCommit={(v) => setSelectedTimeSignature(v, denom)}
+      />
+      <span style={{ color: disabled ? '#bbb' : '#555' }}>/</span>
+      <select
+        value={denom}
+        disabled={disabled}
+        style={selectStyle}
+        onChange={(e) => setSelectedTimeSignature(num, Number((e.target as HTMLSelectElement).value))}
+      >
+        {TS_DENOMINATORS.map((d) => (
+          <option key={d} value={d}>
+            {d}
+          </option>
+        ))}
+      </select>
+    </span>
+  )
+}
+
+function KeySigControl({
+  fifths,
+  type,
+  disabled,
+}: {
+  fifths: model.KeySignature
+  type: model.KeySignatureType
+  disabled: boolean
+}) {
+  const idx = KEY_SIGNATURE_OPTIONS.findIndex((o) => o.fifths === fifths && o.type === type)
+  return (
+    <span style={inlineControlStyle}>
+      <span style={{ color: disabled ? '#bbb' : '#555' }}>Key</span>
+      <select
+        value={idx}
+        disabled={disabled}
+        style={selectStyle}
+        onChange={(e) => {
+          const o = KEY_SIGNATURE_OPTIONS[Number((e.target as HTMLSelectElement).value)]
+          if (o) setSelectedKeySignature(o.fifths, o.type)
+        }}
+      >
+        {KEY_SIGNATURE_OPTIONS.map((o, i) => (
+          <option key={i} value={i}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </span>
+  )
+}
+
+/** Tempo marker for the selected bar. Shows the bar's marker bpm if present, else `score.tempo` as a
+ *  placeholder. Commits on Enter or the Set button. */
+function TempoControl({
+  value,
+  placeholder,
+  disabled,
+}: {
+  value: number | null
+  placeholder: number
+  disabled: boolean
+}) {
+  const [text, setText] = useState(value != null ? String(value) : '')
+  const commit = () => {
+    const v = Math.round(Number(text))
+    if (Number.isFinite(v) && v > 0) setSelectedTempo(v)
+  }
+  return (
+    <span style={inlineControlStyle}>
+      <span style={{ color: disabled ? '#bbb' : '#555' }}>Tempo</span>
+      <input
+        type="number"
+        min={1}
+        value={text}
+        placeholder={String(placeholder)}
+        disabled={disabled}
+        style={numInputStyle}
+        onInput={(e) => setText((e.target as HTMLInputElement).value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commit()
+        }}
+      />
+      <button type="button" disabled={disabled || text === ''} onClick={commit} style={btnStyle(false, disabled || text === '')}>
+        Set
+      </button>
+    </span>
+  )
+}
+
 // ── Small presentational helpers (vanilla inline styles, matching the rest of the UI) ───────────
 function Group({ title, children }: { title: string; children: ComponentChildren }) {
   return (
@@ -557,6 +742,22 @@ function btnStyle(active: boolean, disabled: boolean) {
     background: disabled ? '#f5f5f5' : active ? '#5a6ee0' : '#fff',
     color: disabled ? '#bbb' : active ? '#fff' : '#333',
   }
+}
+
+const inlineControlStyle = { display: 'inline-flex', gap: '0.25rem', alignItems: 'center' }
+const numInputStyle = {
+  width: 46,
+  fontSize: '0.78rem',
+  padding: '2px 4px',
+  borderRadius: 4,
+  border: '1px solid #ccc',
+}
+const selectStyle = {
+  fontSize: '0.78rem',
+  padding: '2px 4px',
+  borderRadius: 4,
+  border: '1px solid #ccc',
+  background: '#fff',
 }
 
 const backdropStyle = { position: 'fixed' as const, inset: 0, zIndex: 10 }
