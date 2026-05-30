@@ -39,3 +39,18 @@ export {
   setSelectedSlideOut,
   setSelectedSlideIn,
 } from './effects/linked'
+// ── Phase 4b effects: curves (bend + whammy presets) ────────────────────────────────────────────
+export {
+  SetBendCommand,
+  BEND_PRESETS,
+  type BendPreset,
+  setSelectedBend,
+  clearSelectedBend,
+} from './effects/Bend'
+export {
+  SetWhammyCommand,
+  WHAMMY_PRESETS,
+  type WhammyPreset,
+  setSelectedWhammy,
+  clearSelectedWhammy,
+} from './effects/Whammy'

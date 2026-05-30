@@ -20,6 +20,12 @@ export type NoteEffectField =
 /** Settable scalar beat effect fields (Phase 4). 4a: `dynamics`. 4b extends with whammy/tap/etc. */
 export type BeatEffectField = 'dynamics'
 
+/** A bend/whammy curve point as a plain `[offset, value]` pair (offset 0–60, value in quarter-tones
+ *  — `value / 2 = semitones`). The editor authors curves as these tuples and the mutator inflates
+ *  them into alphaTab `BendPoint`s; keeping them primitive makes presets and captured-undo state
+ *  trivially deep-copyable (no shared `BendPoint` references between a command and the live model). */
+export type CurvePoint = readonly [offset: number, value: number]
+
 /**
  * The single resolution point between an opaque `BeatRef` + string number and a live
  * alphaTab `Note`. Shared by Commands and tests so there's one implementation.
@@ -75,6 +81,44 @@ export class ScoreMutator {
   setBeatField<K extends BeatEffectField>(at: BeatRef, key: K, value: model.Beat[K]): void {
     const beat = resolveBeat(this.score, at)
     if (beat) beat[key] = value
+  }
+
+  /**
+   * Set (or clear) the bend on the note at `at`/`stringIndex` (Phase 4b). `points = null` with
+   * `bendType = None` clears it. Always rebuilds from scratch via `addBendPoint`, which is the only
+   * path that keeps the renderer's `maxBendPoint` cache coherent — `finish()` does NOT recompute it
+   * (verified), and a directly-assigned array leaves it stale. So we null the cache first, set the
+   * type, then re-add each point. (`addBendPoint` flips `None`→`Custom`; harmless here because a real
+   * preset type is set first, and a clear passes no points.) Dumb by design — the Command owns undo.
+   */
+  applyBend(
+    at: BeatRef,
+    stringIndex: number,
+    bendType: model.BendType,
+    points: CurvePoint[] | null,
+  ): void {
+    const note = resolveNote(this.score, at, stringIndex)
+    if (!note) return
+    note.bendPoints = null
+    note.maxBendPoint = null
+    note.bendType = bendType
+    if (points) for (const [offset, value] of points) note.addBendPoint(new model.BendPoint(offset, value))
+  }
+
+  /**
+   * Set (or clear) the whammy bar on the beat at `at` (Phase 4b). Beat-level twin of `applyBend`.
+   * `addWhammyBarPoint` maintains BOTH `maxWhammyPoint` and `minWhammyPoint` (dives are negative);
+   * neither is recomputed by `finish()`, so both must be nulled before rebuilding or a deep→shallow
+   * switch (or an undo) strands a stale dive depth in the renderer cache.
+   */
+  applyWhammy(at: BeatRef, whammyType: model.WhammyType, points: CurvePoint[] | null): void {
+    const beat = resolveBeat(this.score, at)
+    if (!beat) return
+    beat.whammyBarPoints = null
+    beat.maxWhammyPoint = null
+    beat.minWhammyPoint = null
+    beat.whammyBarType = whammyType
+    if (points) for (const [offset, value] of points) beat.addWhammyBarPoint(new model.BendPoint(offset, value))
   }
 
   /**

@@ -16,6 +16,12 @@ import {
   tieSelectedNote,
   setSelectedSlideOut,
   setSelectedSlideIn,
+  BEND_PRESETS,
+  setSelectedBend,
+  clearSelectedBend,
+  WHAMMY_PRESETS,
+  setSelectedWhammy,
+  clearSelectedWhammy,
 } from '../editor/commands'
 
 /**
@@ -79,6 +85,14 @@ export function EffectsPanel() {
         <Toggle label="Let ring" active={!!note?.isLetRing} disabled={!hasNote} onClick={toggleSelectedLetRing} />
         <Toggle label="HO/PO" active={!!note?.isHammerPullOrigin} disabled={!hasNote} onClick={toggleSelectedHammerPull} />
         <SlideControl note={note} active={slideActive} disabled={!hasNote} />
+        <BendControl active={!!note?.hasBend} disabled={!hasNote} />
+      </Group>
+
+      <span style={groupDividerStyle} />
+
+      <Group title="Advanced">
+        {/* Whammy is beat-level — stays enabled whenever a beat is selected, no note required. */}
+        <WhammyControl active={!!beat?.hasWhammyBar} disabled={!beat} />
       </Group>
 
       {!hasSelection && <span style={hintStyle}>Select a beat to edit effects</span>}
@@ -139,6 +153,82 @@ function SlideControl({
                 active={inType === o.value}
                 onClick={() => {
                   setSelectedSlideIn(o.value)
+                  setOpen(false)
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
+// ── Bend submenu (note-level preset list + None) ─────────────────────────────────────────────────
+// Active = `note.hasBend` (PHASE_4: don't reverse-match points→preset for the highlight; presence is
+// enough). "None" clears the bend so removal is panel-accessible, not undo-only — mirrors Slide.
+function BendControl({ active, disabled }: { active: boolean; disabled: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <Toggle label="Bend ▾" active={active} disabled={disabled} onClick={() => setOpen((o) => !o)} />
+      {open && !disabled && (
+        <>
+          <div style={backdropStyle} onClick={() => setOpen(false)} />
+          <div style={popoverStyle}>
+            <div style={popLabelStyle}>Bend</div>
+            <PopItem
+              label="None"
+              active={!active}
+              onClick={() => {
+                clearSelectedBend()
+                setOpen(false)
+              }}
+            />
+            {BEND_PRESETS.map((p) => (
+              <PopItem
+                key={p.id}
+                label={p.label}
+                active={false}
+                onClick={() => {
+                  setSelectedBend(p)
+                  setOpen(false)
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
+// ── Whammy submenu (beat-level preset list + None) ───────────────────────────────────────────────
+function WhammyControl({ active, disabled }: { active: boolean; disabled: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <Toggle label="Whammy ▾" active={active} disabled={disabled} onClick={() => setOpen((o) => !o)} />
+      {open && !disabled && (
+        <>
+          <div style={backdropStyle} onClick={() => setOpen(false)} />
+          <div style={popoverStyle}>
+            <div style={popLabelStyle}>Tremolo bar</div>
+            <PopItem
+              label="None"
+              active={!active}
+              onClick={() => {
+                clearSelectedWhammy()
+                setOpen(false)
+              }}
+            />
+            {WHAMMY_PRESETS.map((p) => (
+              <PopItem
+                key={p.id}
+                label={p.label}
+                active={false}
+                onClick={() => {
+                  setSelectedWhammy(p)
                   setOpen(false)
                 }}
               />

@@ -14,6 +14,10 @@ import {
   SetNoteEffectCommand,
   SetBeatEffectCommand,
   TieCommand,
+  SetBendCommand,
+  SetWhammyCommand,
+  BEND_PRESETS,
+  WHAMMY_PRESETS,
   DURATION_LADDER,
   MAX_FRET,
 } from '../../src/editor/commands'
@@ -185,6 +189,42 @@ const genDynamics: Generator = (score, rand) => {
   return new SetBeatEffectCommand(p.at, 'dynamics', diffEnum(rand, p.beat.dynamics, 8) as model.DynamicValue, { relayout: 'voice' })
 }
 
+// ── Phase 4b curve generators (bend + whammy) ───────────────────────────────────────────────────
+// A bend/whammy is a (type, points) pair, so "differs from current" must compare BOTH — two presets
+// can share a BendType (½/full/1½ are all `Bend`) yet differ in points. Picking the already-applied
+// preset would be a no-op and sag the tripwire's >0.9 mutation ratio (mirrors genTie's guard), so we
+// pick from the presets that actually differ and bail if none do.
+const samePoints = (a: readonly (readonly [number, number])[] | null, b: model.BendPoint[] | null): boolean => {
+  const bb = b ? b.map((p) => [p.offset, p.value] as const) : null
+  if (a === null || bb === null) return a === bb
+  return a.length === bb.length && a.every((p, i) => p[0] === bb[i][0] && p[1] === bb[i][1])
+}
+
+/** Apply a bend preset (different from the note's current bend) to a random note. */
+const genBend: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p || p.beat.notes.length === 0) return null
+  const note = pick(rand, p.beat.notes)
+  const choices = BEND_PRESETS.filter(
+    (pr) => !(pr.bendType === note.bendType && samePoints(pr.points, note.bendPoints)),
+  )
+  if (choices.length === 0) return null
+  const preset = pick(rand, choices)
+  return new SetBendCommand(p.at, note.string, preset.bendType, preset.points)
+}
+
+/** Apply a whammy preset (different from the beat's current whammy) to a random beat. */
+const genWhammy: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p) return null
+  const choices = WHAMMY_PRESETS.filter(
+    (pr) => !(pr.whammyType === p.beat.whammyBarType && samePoints(pr.points, p.beat.whammyBarPoints)),
+  )
+  if (choices.length === 0) return null
+  const preset = pick(rand, choices)
+  return new SetWhammyCommand(p.at, preset.whammyType, preset.points)
+}
+
 const GENERATORS: Generator[] = [
   genChangeFret,
   genChangeString,
@@ -205,6 +245,9 @@ const GENERATORS: Generator[] = [
   noteEnumGen('slideInType', 3, 'voice'),
   noteEnumGen('slideOutType', 7, 'voice'),
   genDynamics,
+  // Phase 4b curves
+  genBend,
+  genWhammy,
 ]
 
 function runRoundTrip(seed: number, steps: number) {
