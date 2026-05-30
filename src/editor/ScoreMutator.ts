@@ -4,7 +4,8 @@ import { resolveBeat, resolveVoice, type BeatRef } from './selection'
 /**
  * Settable scalar note effect fields the editor writes (Phase 4). Boolean flags and enum values
  * only — never derived `Note`-reference pointers (`hammerPullDestination`, `slideTarget`, …),
- * which `finish()` owns. The 4a slice; 4b adds `harmonicType`/`harmonicValue`/`bendType`.
+ * which `finish()` owns. The 4a slice; 4b adds `harmonicType` (Natural/Pinch only — both verified
+ * `harmonicValue 0`, so no value write is needed and the generic single-field command suffices).
  */
 export type NoteEffectField =
   | 'isPalmMute'
@@ -16,9 +17,12 @@ export type NoteEffectField =
   | 'vibrato'
   | 'slideInType'
   | 'slideOutType'
+  | 'harmonicType'
 
-/** Settable scalar beat effect fields (Phase 4). 4a: `dynamics`. 4b extends with whammy/tap/etc. */
-export type BeatEffectField = 'dynamics'
+/** Settable scalar beat effect fields (Phase 4). 4a: `dynamics`. 4b-2 adds `tap` (a plain bool —
+ *  `tremoloSpeed` is NOT here because it's nullable, so it needs the captured-flag SetTremoloCommand
+ *  rather than the generic `=== null`-sentinel command; whammy/grace own their commands too). */
+export type BeatEffectField = 'dynamics' | 'tap'
 
 /** A bend/whammy curve point as a plain `[offset, value]` pair (offset 0–60, value in quarter-tones
  *  — `value / 2 = semitones`). The editor authors curves as these tuples and the mutator inflates

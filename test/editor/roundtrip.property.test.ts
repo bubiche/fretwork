@@ -16,6 +16,8 @@ import {
   TieCommand,
   SetBendCommand,
   SetWhammyCommand,
+  SetTremoloCommand,
+  InsertGraceBeatCommand,
   BEND_PRESETS,
   WHAMMY_PRESETS,
   DURATION_LADDER,
@@ -225,6 +227,45 @@ const genWhammy: Generator = (score, rand) => {
   return new SetWhammyCommand(p.at, preset.whammyType, preset.points)
 }
 
+// ── Phase 4b-2 generators (tap, harmonics, tremolo, grace) ──────────────────────────────────────
+
+/** Toggle a random beat's tap flag (beat-level bool — always mutates). */
+const genTap: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p) return null
+  return new SetBeatEffectCommand(p.at, 'tap', !p.beat.tap, { relayout: 'voice' })
+}
+
+/** Set a random note's harmonic type to a different one of {None, Natural, Pinch}. The shipped set
+ *  is non-contiguous (None=0, Natural=1, Pinch=3), so we pick from the differing values directly
+ *  rather than via diffEnum. */
+const HARMONIC_VALUES = [model.HarmonicType.None, model.HarmonicType.Natural, model.HarmonicType.Pinch]
+const genHarmonic: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p || p.beat.notes.length === 0) return null
+  const note = pick(rand, p.beat.notes)
+  const choices = HARMONIC_VALUES.filter((v) => v !== note.harmonicType)
+  return new SetNoteEffectCommand(p.at, note.string, 'harmonicType', pick(rand, choices), { relayout: 'voice' })
+}
+
+/** Set a random beat's tremolo speed to a different one of {none(null), 8th, 16th, 32nd}. */
+const TREMOLO_VALUES: (model.Duration | null)[] = [null, model.Duration.Eighth, model.Duration.Sixteenth, model.Duration.ThirtySecond]
+const genTremolo: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p) return null
+  const choices = TREMOLO_VALUES.filter((v) => v !== p.beat.tremoloSpeed)
+  return new SetTremoloCommand(p.at, pick(rand, choices))
+}
+
+/** Insert a grace beat before a random note-bearing beat (copying its pitch). Structural, so it
+ *  round-trips finish-free like genInsertBeat (snapshot reads array position). */
+const genGrace: Generator = (score, rand) => {
+  const p = pickBeat(score, rand)
+  if (!p || p.beat.notes.length === 0) return null
+  const note = pick(rand, p.beat.notes)
+  return new InsertGraceBeatCommand(p.at, note.string, model.GraceType.BeforeBeat)
+}
+
 const GENERATORS: Generator[] = [
   genChangeFret,
   genChangeString,
@@ -248,6 +289,11 @@ const GENERATORS: Generator[] = [
   // Phase 4b curves
   genBend,
   genWhammy,
+  // Phase 4b-2 effects
+  genTap,
+  genHarmonic,
+  genTremolo,
+  genGrace,
 ]
 
 function runRoundTrip(seed: number, steps: number) {

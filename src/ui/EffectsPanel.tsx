@@ -22,6 +22,14 @@ import {
   WHAMMY_PRESETS,
   setSelectedWhammy,
   clearSelectedWhammy,
+  TREMOLO_PRESETS,
+  setSelectedTremolo,
+  clearSelectedTremolo,
+  toggleSelectedTap,
+  HARMONIC_OPTIONS,
+  setSelectedHarmonic,
+  GRACE_OPTIONS,
+  setSelectedGrace,
 } from '../editor/commands'
 
 /**
@@ -49,6 +57,8 @@ export function EffectsPanel() {
 
   const dynLabel = beat ? DYNAMICS_LABELS[DYNAMICS_LADDER.indexOf(beat.dynamics)] ?? '—' : '—'
   const slideActive = !!note && (note.slideOutType !== 0 || note.slideInType !== 0)
+  const tremoloActive = !!beat && beat.tremoloSpeed != null
+  const harmonicActive = !!note && note.harmonicType !== model.HarmonicType.None
 
   return (
     <div style={barStyle}>
@@ -91,8 +101,13 @@ export function EffectsPanel() {
       <span style={groupDividerStyle} />
 
       <Group title="Advanced">
-        {/* Whammy is beat-level — stays enabled whenever a beat is selected, no note required. */}
+        {/* Whammy + tremolo + tap are beat-level — enabled whenever a beat is selected, no note
+            required. Harmonics + grace are note-level (grace copies the selected note's pitch). */}
         <WhammyControl active={!!beat?.hasWhammyBar} disabled={!beat} />
+        <TremoloControl beat={beat} active={tremoloActive} disabled={!beat} />
+        <Toggle label="Tap" active={!!beat?.tap} disabled={!beat} onClick={toggleSelectedTap} />
+        <HarmonicControl note={note} active={harmonicActive} disabled={!hasNote} />
+        <GraceControl disabled={!hasNote} />
       </Group>
 
       {!hasSelection && <span style={hintStyle}>Select a beat to edit effects</span>}
@@ -229,6 +244,122 @@ function WhammyControl({ active, disabled }: { active: boolean; disabled: boolea
                 active={false}
                 onClick={() => {
                   setSelectedWhammy(p)
+                  setOpen(false)
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
+// ── Tremolo submenu (beat-level preset list + None) ──────────────────────────────────────────────
+function TremoloControl({
+  beat,
+  active,
+  disabled,
+}: {
+  beat: model.Beat | null
+  active: boolean
+  disabled: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const speed = beat?.tremoloSpeed ?? null
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <Toggle label="Tremolo ▾" active={active} disabled={disabled} onClick={() => setOpen((o) => !o)} />
+      {open && !disabled && (
+        <>
+          <div style={backdropStyle} onClick={() => setOpen(false)} />
+          <div style={popoverStyle}>
+            <div style={popLabelStyle}>Tremolo picking</div>
+            <PopItem
+              label="None"
+              active={!active}
+              onClick={() => {
+                clearSelectedTremolo()
+                setOpen(false)
+              }}
+            />
+            {TREMOLO_PRESETS.map((p) => (
+              <PopItem
+                key={p.id}
+                label={p.label}
+                active={speed === p.speed}
+                onClick={() => {
+                  setSelectedTremolo(p)
+                  setOpen(false)
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
+// ── Harmonics submenu (note-level; Natural + Pinch, both verified harmonicValue 0) ───────────────
+function HarmonicControl({
+  note,
+  active,
+  disabled,
+}: {
+  note: model.Note | null
+  active: boolean
+  disabled: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const type = note?.harmonicType ?? model.HarmonicType.None
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <Toggle label="Harmonic ▾" active={active} disabled={disabled} onClick={() => setOpen((o) => !o)} />
+      {open && !disabled && (
+        <>
+          <div style={backdropStyle} onClick={() => setOpen(false)} />
+          <div style={popoverStyle}>
+            <div style={popLabelStyle}>Harmonic</div>
+            {HARMONIC_OPTIONS.map((o) => (
+              <PopItem
+                key={o.value}
+                label={o.label}
+                active={type === o.value}
+                onClick={() => {
+                  setSelectedHarmonic(o.value)
+                  setOpen(false)
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
+// ── Grace submenu (note-level ACTION — inserts a grace beat before; no toggle state) ─────────────
+// Grace is an insertion, not a property of the selected beat (the grace is its own beat), so there's
+// no "active" highlight. Add-only via the panel in 4b-2 (remove with undo) — a scope choice, not a
+// limitation; a "Remove grace" control is a clean follow-up (see InsertGraceBeatCommand's note).
+function GraceControl({ disabled }: { disabled: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <Toggle label="Grace ▾" active={false} disabled={disabled} onClick={() => setOpen((o) => !o)} />
+      {open && !disabled && (
+        <>
+          <div style={backdropStyle} onClick={() => setOpen(false)} />
+          <div style={popoverStyle}>
+            <div style={popLabelStyle}>Add grace note</div>
+            {GRACE_OPTIONS.map((o) => (
+              <PopItem
+                key={o.value}
+                label={o.label}
+                active={false}
+                onClick={() => {
+                  setSelectedGrace(o.value)
                   setOpen(false)
                 }}
               />

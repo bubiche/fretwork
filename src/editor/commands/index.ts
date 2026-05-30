@@ -54,3 +54,21 @@ export {
   setSelectedWhammy,
   clearSelectedWhammy,
 } from './effects/Whammy'
+// ── Phase 4b-2 effects: tremolo, tap, harmonics, grace ──────────────────────────────────────────
+export {
+  toggleSelectedTap,
+  setSelectedHarmonic,
+  HARMONIC_OPTIONS,
+} from './effects/advanced'
+export {
+  SetTremoloCommand,
+  TREMOLO_PRESETS,
+  type TremoloPreset,
+  setSelectedTremolo,
+  clearSelectedTremolo,
+} from './effects/Tremolo'
+export {
+  InsertGraceBeatCommand,
+  GRACE_OPTIONS,
+  setSelectedGrace,
+} from './effects/Grace'
