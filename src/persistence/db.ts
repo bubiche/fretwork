@@ -72,6 +72,28 @@ export async function addFile(name: string, bytes: ArrayBuffer): Promise<FileMet
   return meta
 }
 
+/**
+ * Overwrite an existing file's bytes in place (Phase 6 auto-save). Keeps the same id/name so the
+ * library entry and the open editor stay pointed at it; only the bytes + size change. alphaTab can
+ * only write GP7, so a non-GP7 import becomes GP7 content under its original name after the first
+ * save — the displayed name is just a label (alphaTab detects format by content on reload). No-op if
+ * the row is gone (deleted between an edit and its debounced save).
+ */
+export async function updateFileBytes(id: string, bytes: ArrayBuffer): Promise<void> {
+  const db = await getDb()
+  const tx = db.transaction(['meta', 'files'], 'readwrite')
+  const metaStore = tx.objectStore('meta')
+  const meta = await promisifyRequest(metaStore.get(id) as IDBRequest<FileMeta | undefined>)
+  if (!meta) {
+    tx.abort()
+    return
+  }
+  meta.size = bytes.byteLength
+  metaStore.put(meta)
+  tx.objectStore('files').put({ id, bytes })
+  await promisifyTx(tx)
+}
+
 export async function touchLastOpened(id: string): Promise<void> {
   const db = await getDb()
   const tx = db.transaction('meta', 'readwrite')

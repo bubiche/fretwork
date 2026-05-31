@@ -4,6 +4,7 @@ import { useStore } from './hooks/useStore'
 import { store } from '../editor/store'
 import { listFiles, touchLastOpened, renameFile, deleteFile } from '../persistence/db'
 import { importFiles } from '../persistence/import'
+import { createBlankScore } from '../persistence/newScore'
 import { Tracks } from './Tracks'
 import { KeyboardHelp } from './KeyboardHelp'
 
@@ -20,6 +21,15 @@ export function Sidebar() {
     if (!fs) return
     await importFiles(Array.from(fs))
     input.value = ''
+  }
+
+  async function onNew() {
+    const input = prompt('Name your new tab', 'Untitled')
+    if (input === null) return // cancelled
+    const name = input.trim() || 'Untitled'
+    const meta = await createBlankScore(name)
+    const list = await listFiles()
+    store.setState({ files: list, currentFileId: meta.id, error: null })
   }
 
   async function open(id: string) {
@@ -75,6 +85,9 @@ export function Sidebar() {
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
         <strong style={{ fontSize: '0.85rem' }}>Files</strong>
         <span style={{ flex: 1 }} />
+        <button type="button" onClick={onNew}>
+          New
+        </button>
         <button type="button" onClick={() => inputRef.current?.click()}>
           Add…
         </button>

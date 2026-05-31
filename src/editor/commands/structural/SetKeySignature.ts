@@ -76,4 +76,13 @@ export function setSelectedKeySignature(key: model.KeySignature, type: model.Key
   const { selection, api } = store.getState()
   if (!selection || !api?.score) return
   execute(new SetKeySignatureCommand(selection, key, type))
+  // GP stores one key sig per bar at MasterBar level (= track 0), so a change on any other track is
+  // dropped on save/export (Q13). Warn — don't block — since the in-model edit still applies + undoes,
+  // and auto-save would otherwise make the loss silent on the next reload. Track 0 clears the warning.
+  store.setState({
+    warning:
+      selection.trackIndex === 0
+        ? null
+        : "Key signature changes on this track won't be saved or exported — Guitar Pro keeps a single key signature per bar (the first track's). The change shows here but won't persist.",
+  })
 }

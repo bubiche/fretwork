@@ -173,6 +173,25 @@ export function reValidateSelection(score: model.Score): void {
   }
 }
 
+const NOTE_NAMES = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B']
+
+/**
+ * Display label for a fretboard string — the 1-based string number plus its open-string note name
+ * (e.g. `1 · E`). Used by the empty-beat cue, where there's no fret digit to highlight and the user
+ * needs to know which string a fret will land on; the number keeps the two same-named guitar E
+ * strings (1 and 6) distinct.
+ *
+ * `selectedString` follows {@link moveString}'s convention: 1 = lowest string (bottom tab line),
+ * increasing upward. `tuning` is ordered top-line-first (index 0 = highest string), so the two are
+ * INVERTED — the tuning index is `length - selectedString`, not `selectedString - 1`. Falls back to
+ * the bare number if the string is out of the tuning's range.
+ */
+export function openStringLabel(tuning: number[], selectedString: number): string {
+  const midi = tuning[tuning.length - selectedString]
+  if (midi == null || !Number.isFinite(midi)) return `${selectedString}`
+  return `${selectedString} · ${NOTE_NAMES[((midi % 12) + 12) % 12]}`
+}
+
 function beatRefFromBeat(beat: model.Beat): BeatRef | null {
   const voice = beat.voice
   const bar = voice.bar

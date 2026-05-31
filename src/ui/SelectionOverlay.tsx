@@ -4,6 +4,7 @@ import {
   sameVoice,
   normalizeRange,
   collectRangeBeats,
+  openStringLabel,
 } from '../editor/selection'
 import { useStore } from './hooks/useStore'
 
@@ -92,8 +93,15 @@ export function SelectionOverlay() {
   // When the selected string carries no note (building a chord or moving to a fresh string) there's
   // no fret digit to anchor to. Interpolate the target row from the other digits: tab lines are
   // evenly spaced, so string→y is linear. ≥2 strings → exact spacing; 1 → approximate by digit
-  // height; an empty beat (rest) has nothing to anchor to and falls back to the beat box alone.
+  // height.
   const ghostRow = noteBounds ? null : interpolateRow(rows, selectedString)
+
+  // A fully-empty beat (rest, no digits at all — the opening state of every blank tab) has nothing
+  // to interpolate from, so neither cue above can place a row. Fall back to a label badge that NAMES
+  // the target string (number + open-note) on the beat box. It anchors to `box` (no tab-line geometry
+  // to guess at), and naming the string is clearer here than pointing at a line on an empty staff.
+  const showBadge = !noteBounds && !ghostRow
+  const badge = showBadge ? openStringLabel(beat.voice.bar.staff.tuning, selectedString) : null
 
   return (
     <>
@@ -139,6 +147,28 @@ export function SelectionOverlay() {
             pointerEvents: 'none',
           }}
         />
+      )}
+      {badge && (
+        // Inset into the box's top-left (not floating above it): the blank-tab target is beat 0 of
+        // the first, topmost bar, so anchoring above the box would clip off the top of the score.
+        <div
+          style={{
+            position: 'absolute',
+            left: box.x + 1,
+            top: box.y + 1,
+            background: 'rgba(50, 120, 255, 0.9)',
+            color: '#fff',
+            fontSize: 10,
+            lineHeight: 1.3,
+            padding: '0 4px',
+            borderRadius: 3,
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            fontFamily: 'system-ui, sans-serif',
+          }}
+        >
+          {badge}
+        </div>
       )}
     </>
   )

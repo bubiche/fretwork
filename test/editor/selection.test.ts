@@ -3,6 +3,7 @@ import { store } from '../../src/editor/store'
 import {
   moveBeat,
   moveString,
+  openStringLabel,
   reValidateSelection,
   resolveVoice,
   type BeatRef,
@@ -99,6 +100,27 @@ describe('moveString', () => {
     store.setState({ selectedString: 1 })
     moveString(1)
     expect(store.getState().selectedString).toBe(1)
+  })
+})
+
+describe('openStringLabel (empty-beat string cue)', () => {
+  // Standard-tuning array as alphaTab stores it: top-line-first (index 0 = high E), so the array is
+  // INVERTED relative to selectedString (1 = low E / bottom line). This pins that inversion: each
+  // string number must map to its conventional guitar open-note (low→high: E A D G B E).
+  const STANDARD = [64, 59, 55, 50, 45, 40] // E4 B3 G3 D3 A2 E2
+
+  it('maps each string number to its open-string note name', () => {
+    expect(openStringLabel(STANDARD, 1)).toBe('1 · E') // low E (bottom line)
+    expect(openStringLabel(STANDARD, 2)).toBe('2 · A')
+    expect(openStringLabel(STANDARD, 3)).toBe('3 · D')
+    expect(openStringLabel(STANDARD, 4)).toBe('4 · G')
+    expect(openStringLabel(STANDARD, 5)).toBe('5 · B')
+    expect(openStringLabel(STANDARD, 6)).toBe('6 · E') // high E (top line)
+  })
+
+  it('falls back to the bare number when the string is out of the tuning range', () => {
+    expect(openStringLabel(STANDARD, 7)).toBe('7')
+    expect(openStringLabel(STANDARD, 0)).toBe('0')
   })
 })
 

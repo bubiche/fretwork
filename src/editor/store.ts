@@ -35,6 +35,9 @@ export type StoreState = {
   currentFileId: string | null
   files: FileMeta[]
   error: string | null
+  // Non-blocking advisory (yellow), distinct from `error` (red). e.g. an edit that applies in-model but
+  // won't survive save/export — currently the non-track-0 key-sig drop (Phase 6 Q13).
+  warning: string | null
   api: AlphaTabApi | null
   transport: TransportState
   tracks: TrackUiState[]
@@ -76,6 +79,7 @@ const initialState: StoreState = {
   currentFileId: null,
   files: [],
   error: null,
+  warning: null,
   api: null,
   transport: DEFAULT_TRANSPORT,
   tracks: [],

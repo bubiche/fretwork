@@ -16,6 +16,7 @@ export function ScoreView() {
   const apiRef = useRef<AlphaTabApi | null>(null)
   const currentFileId = useStore((s) => s.currentFileId)
   const error = useStore((s) => s.error)
+  const warning = useStore((s) => s.warning)
 
   useEffect(() => {
     if (!containerRef.current || !scrollRef.current) return
@@ -39,6 +40,7 @@ export function ScoreView() {
           soloed: false,
         })),
         selection: null,
+        warning: null,
       })
       applyTransportToApi(instance, store.getState().transport)
     })
@@ -85,7 +87,7 @@ export function ScoreView() {
     let cancelled = false
     getFileBytes(currentFileId).then((bytes) => {
       if (cancelled || !apiRef.current || !bytes) return
-      store.setState({ error: null })
+      store.setState({ error: null, warning: null })
       const ok = apiRef.current.load(bytes)
       if (!ok) store.setState({ error: "Couldn't read this file." })
     })
@@ -99,6 +101,38 @@ export function ScoreView() {
       {error && (
         <div style={{ padding: '0.5rem 1rem', background: '#fee', color: '#900', fontSize: '0.85rem' }}>
           {error}
+        </div>
+      )}
+      {warning && (
+        <div
+          style={{
+            padding: '0.5rem 1rem',
+            background: '#fff8e1',
+            color: '#8a6d00',
+            fontSize: '0.85rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            borderBottom: '1px solid #f0e3b0',
+          }}
+        >
+          <span style={{ flex: 1 }}>{warning}</span>
+          <button
+            type="button"
+            onClick={() => store.setState({ warning: null })}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: '#8a6d00',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              lineHeight: 1,
+              padding: '0 0.25rem',
+            }}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
         </div>
       )}
       <div
