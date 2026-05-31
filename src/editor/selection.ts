@@ -9,10 +9,44 @@ export type BeatRef = {
   beatIndex: number
 }
 
+/**
+ * A contiguous beat range within ONE track/staff/voice (Phase 5b copy/cut/paste). `from`/`to` are
+ * inclusive and ascending (`from` ≤ `to` by (barIndex, beatIndex)). Built from the store's
+ * `anchor` + `selection` by {@link normalizeRange}; consumed by the clipboard commands.
+ */
+export type BeatRange = {
+  trackIndex: number
+  staffIndex: number
+  voiceIndex: number
+  fromBar: number
+  fromBeat: number
+  toBar: number
+  toBeat: number
+}
+
 export function selectByBeat(beat: model.Beat): void {
   const ref = beatRefFromBeat(beat)
   if (!ref) return
-  store.setState({ selection: ref })
+  // A plain click collapses any active range back to a single-beat selection (clears the anchor).
+  store.setState({ selection: ref, anchor: null })
+}
+
+/**
+ * Shift+click: set the range FOCUS to the clicked beat, seeding `anchor` from the current selection
+ * if no range is active yet. Bails if the click lands in a different track/staff/voice than the
+ * existing selection — a range is single-track only (PHASE_5 §range selection model). Falls back to
+ * a plain select when there's no current selection to anchor against.
+ */
+export function setRangeFocusByBeat(beat: model.Beat): void {
+  const ref = beatRefFromBeat(beat)
+  if (!ref) return
+  const { selection, anchor } = store.getState()
+  if (!selection) {
+    store.setState({ selection: ref, anchor: null })
+    return
+  }
+  if (!sameVoice(selection, ref)) return // can't range across tracks/staves/voices
+  store.setState({ selection: ref, anchor: anchor ?? selection })
 }
 
 /**
@@ -24,11 +58,17 @@ export function selectByBeat(beat: model.Beat): void {
 export function selectByNote(note: model.Note): void {
   const ref = beatRefFromBeat(note.beat)
   if (!ref) return
-  store.setState({ selection: ref, selectedString: note.string })
+  // Plain click on a note head → collapse any range too (clears anchor).
+  store.setState({ selection: ref, anchor: null, selectedString: note.string })
 }
 
 export function clearSelection(): void {
-  store.setState({ selection: null })
+  store.setState({ selection: null, anchor: null })
+}
+
+/** Drop any active range, keeping the single-beat focus. Called by every plain (non-shift) nav. */
+export function clearAnchor(): void {
+  if (store.getState().anchor !== null) store.setState({ anchor: null })
 }
 
 export function moveBeat(dx: -1 | 1): void {
@@ -76,6 +116,18 @@ export function moveString(dy: -1 | 1): void {
   const next = Math.max(1, Math.min(count, state.selectedString + delta))
   if (next === state.selectedString) return
   store.setState({ selectedString: next })
+}
+
+/**
+ * Shift+arrow: extend the range by one beat. Seeds `anchor` from the current focus on first
+ * extension, then moves the focus with {@link moveBeat} (which stays within the track and leaves
+ * `anchor` untouched). A boundary refusal leaves a zero-length range — harmless.
+ */
+export function extendSelection(dx: -1 | 1): void {
+  const { selection, anchor } = store.getState()
+  if (!selection) return
+  if (anchor === null) store.setState({ anchor: selection })
+  moveBeat(dx)
 }
 
 /**
@@ -159,4 +211,61 @@ export function resolveVoice(score: model.Score, at: BeatRef): model.Voice | nul
   const bar = staff.bars[at.barIndex]
   if (!bar) return null
   return bar.voices[at.voiceIndex] ?? null
+}
+
+/** True if two refs address the same track/staff/voice (range membership precondition). */
+export function sameVoice(a: BeatRef, b: BeatRef): boolean {
+  return (
+    a.trackIndex === b.trackIndex &&
+    a.staffIndex === b.staffIndex &&
+    a.voiceIndex === b.voiceIndex
+  )
+}
+
+/** Order two refs in the same voice into an ascending {@link BeatRange}, or null if they're not in
+ *  the same voice. (barIndex, beatIndex) is the sort key. */
+export function normalizeRange(a: BeatRef, b: BeatRef): BeatRange | null {
+  if (!sameVoice(a, b)) return null
+  const aFirst = a.barIndex < b.barIndex || (a.barIndex === b.barIndex && a.beatIndex <= b.beatIndex)
+  const lo = aFirst ? a : b
+  const hi = aFirst ? b : a
+  return {
+    trackIndex: a.trackIndex,
+    staffIndex: a.staffIndex,
+    voiceIndex: a.voiceIndex,
+    fromBar: lo.barIndex,
+    fromBeat: lo.beatIndex,
+    toBar: hi.barIndex,
+    toBeat: hi.beatIndex,
+  }
+}
+
+/**
+ * The range the clipboard acts on: the normalized `[anchor, selection]` when a range is active, else
+ * the single-beat `selection` collapsed to a zero-length range (so copy/cut/paste all work on one
+ * beat with no range — consistent with the `i`-insert fallback). Null when nothing is selected.
+ */
+export function activeRange(): BeatRange | null {
+  const { selection, anchor } = store.getState()
+  if (!selection) return null
+  return normalizeRange(anchor ?? selection, selection)
+}
+
+/** Collect the beats of `range` from `score` IN ORDER, walking across bars. Used by copy/paste to
+ *  gather the source beats (live score for copy bytes; the GP7 clone for the actual paste beats). */
+export function collectRangeBeats(score: model.Score, range: BeatRange): model.Beat[] {
+  const staff = score.tracks[range.trackIndex]?.staves[range.staffIndex]
+  if (!staff) return []
+  const out: model.Beat[] = []
+  for (let b = range.fromBar; b <= range.toBar; b++) {
+    const voice = staff.bars[b]?.voices[range.voiceIndex]
+    if (!voice) continue
+    const start = b === range.fromBar ? range.fromBeat : 0
+    const end = b === range.toBar ? Math.min(range.toBeat, voice.beats.length - 1) : voice.beats.length - 1
+    for (let i = start; i <= end; i++) {
+      const beat = voice.beats[i]
+      if (beat) out.push(beat)
+    }
+  }
+  return out
 }

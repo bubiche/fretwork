@@ -40,6 +40,10 @@ export type StoreState = {
   tracks: TrackUiState[]
   view: ViewState
   selection: BeatRef | null
+  // Phase 5b: the fixed end of a range selection (`selection` is the moving focus). A range is
+  // `[anchor, selection]` normalized to ascending order, within ONE track/staff/voice. `null` = no
+  // range (single-beat selection). Set by Shift+arrows / Shift+click; cleared by any plain nav.
+  anchor: BeatRef | null
   selectedString: number
   scoreVersion: number
   canUndo: boolean
@@ -77,6 +81,7 @@ const initialState: StoreState = {
   tracks: [],
   view: DEFAULT_VIEW,
   selection: null,
+  anchor: null,
   selectedString: 1,
   scoreVersion: 0,
   canUndo: false,

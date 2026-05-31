@@ -31,7 +31,9 @@ import {
   InsertMeasureCommand,
   DeleteMeasureCommand,
   KEY_SIGNATURE_OPTIONS,
+  DeleteRangeCommand,
 } from '../../src/editor/commands'
+import { normalizeRange } from '../../src/editor/selection'
 import { scoreSnapshot } from '../../src/editor/snapshot'
 import type { BeatRef } from '../../src/editor/selection'
 import { makeMinimalScore } from '../fixtures/makeMinimalScore'
@@ -347,6 +349,28 @@ const genDeleteMeasure: Generator = (score, rand) => {
   return new DeleteMeasureCommand(at)
 }
 
+// ── Phase 5b structural generator: delete-range (the pure half of cut) ────────────────────────────
+// Picks two random positions on track 0 / voice 0 and deletes the normalized range between them. May
+// span bars; a fully-covered bar collapses to a rest. Registered here per PHASE_5 §"cut". (PasteCommand
+// is deliberately NOT registered — its fidelity is proven by clipboard-fidelity.fixture.test.ts, since
+// the snapshot field set is the very thing the GP7 clone routes around.)
+const genDeleteRange: Generator = (score, rand) => {
+  const staff = score.tracks[0]?.staves[0]
+  if (!staff || staff.bars.length === 0) return null
+  const pickPos = (): BeatRef | null => {
+    const barIndex = Math.floor(rand() * staff.bars.length)
+    const voice = staff.bars[barIndex].voices[0]
+    if (!voice || voice.beats.length === 0) return null
+    return { trackIndex: 0, staffIndex: 0, voiceIndex: 0, barIndex, beatIndex: Math.floor(rand() * voice.beats.length) }
+  }
+  const a = pickPos()
+  const b = pickPos()
+  if (!a || !b) return null
+  const range = normalizeRange(a, b)
+  if (!range) return null
+  return new DeleteRangeCommand(range)
+}
+
 const GENERATORS: Generator[] = [
   genChangeFret,
   genChangeString,
@@ -383,6 +407,8 @@ const GENERATORS: Generator[] = [
   genSetTempo,
   genInsertMeasure,
   genDeleteMeasure,
+  // Phase 5b structural (delete-range / cut)
+  genDeleteRange,
 ]
 
 function runRoundTrip(seed: number, steps: number) {

@@ -1,4 +1,4 @@
-import { moveBeat, moveString } from '../editor/selection'
+import { moveBeat, moveString, extendSelection, clearAnchor } from '../editor/selection'
 import { seekToSelection } from '../editor/transport'
 import { undo, redo } from '../editor/HistoryRouter'
 import {
@@ -9,6 +9,9 @@ import {
   toggleSelectedDot,
   insertBeatAfterSelection,
   deleteSelectedBeat,
+  copySelection,
+  cutSelection,
+  pasteClipboard,
 } from '../editor/commands'
 
 export function attachKeyboard(): () => void {
@@ -31,22 +34,55 @@ export function attachKeyboard(): () => void {
       return
     }
 
+    // Clipboard (Phase 5b). preventDefault is REQUIRED — otherwise the browser's native copy/paste
+    // fires on any DOM/canvas selection and races the editor's. ⌘C copy, ⌘X cut, ⌘V paste.
+    if (mod && !e.shiftKey && !e.altKey) {
+      const k = e.key.toLowerCase()
+      if (k === 'c') {
+        copySelection()
+        e.preventDefault()
+        return
+      }
+      if (k === 'x') {
+        cutSelection()
+        e.preventDefault()
+        return
+      }
+      if (k === 'v') {
+        pasteClipboard()
+        e.preventDefault()
+        return
+      }
+    }
+
     switch (e.key) {
       case 'ArrowLeft':
-        moveBeat(-1)
+        // Shift+← extends the range by one beat; plain ← collapses any range and moves the focus.
+        if (e.shiftKey) extendSelection(-1)
+        else {
+          clearAnchor()
+          moveBeat(-1)
+        }
         e.preventDefault()
         return
       case 'ArrowRight':
-        moveBeat(1)
+        if (e.shiftKey) extendSelection(1)
+        else {
+          clearAnchor()
+          moveBeat(1)
+        }
         e.preventDefault()
         return
       case 'ArrowUp':
-        // Alt+↑ moves the selected NOTE up a string; plain ↑ moves the selection.
+        // Alt+↑ moves the selected NOTE up a string; plain ↑ moves the selection. Either way it's
+        // not a range extension, so drop any active range.
+        clearAnchor()
         if (e.altKey) moveSelectedNote(-1)
         else moveString(-1)
         e.preventDefault()
         return
       case 'ArrowDown':
+        clearAnchor()
         if (e.altKey) moveSelectedNote(1)
         else moveString(1)
         e.preventDefault()

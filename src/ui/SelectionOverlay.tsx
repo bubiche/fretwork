@@ -1,11 +1,17 @@
 import { useEffect, useState } from 'preact/hooks'
-import { resolveBeat } from '../editor/selection'
+import {
+  resolveBeat,
+  sameVoice,
+  normalizeRange,
+  collectRangeBeats,
+} from '../editor/selection'
 import { useStore } from './hooks/useStore'
 
 type Rect = { x: number; y: number; w: number; h: number }
 
 export function SelectionOverlay() {
   const selection = useStore((s) => s.selection)
+  const anchor = useStore((s) => s.anchor)
   const selectedString = useStore((s) => s.selectedString)
   const api = useStore((s) => s.api)
   const [, bumpTick] = useState(0)
@@ -21,6 +27,44 @@ export function SelectionOverlay() {
   const lookup = api.boundsLookup
   const score = api.score
   if (!lookup || !score) return null
+
+  // Range selection (Phase 5b): when an anchor is set, draw a box per beat from anchor→focus (owner
+  // decision: per-beat boxes, not one sweep). Reuses the same union-of-staff-bounds geometry as the
+  // single-beat box below, applied to each beat in the range.
+  if (anchor && sameVoice(anchor, selection)) {
+    const range = normalizeRange(anchor, selection)
+    // Only draw range boxes for a genuine multi-beat span. A zero-length range (Shift+click the
+    // already-selected beat, or Shift+arrow refused at the score boundary) falls through to the
+    // single-beat highlight below so the per-string fret cursor isn't lost.
+    if (range && !(range.fromBar === range.toBar && range.fromBeat === range.toBeat)) {
+      const beats = collectRangeBeats(score, range)
+      return (
+        <>
+          {beats.map((b, i) => {
+            const bounds = lookup.findBeats(b)
+            if (!bounds || bounds.length === 0) return null
+            const box = unionRect(bounds.map((x) => x.visualBounds))
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: box.x,
+                  top: box.y,
+                  width: box.w,
+                  height: box.h,
+                  background: 'rgba(50, 120, 255, 0.18)',
+                  border: '1px solid rgba(50, 120, 255, 0.45)',
+                  borderRadius: 2,
+                  pointerEvents: 'none',
+                }}
+              />
+            )
+          })}
+        </>
+      )
+    }
+  }
 
   const beat = resolveBeat(score, selection)
   if (!beat) return null

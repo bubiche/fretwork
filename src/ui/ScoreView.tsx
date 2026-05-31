@@ -5,7 +5,7 @@ import { store, DEFAULT_TRANSPORT } from '../editor/store'
 import { useStore } from './hooks/useStore'
 import { getFileBytes } from '../persistence/db'
 import { applyTransportToApi } from '../editor/transport'
-import { selectByBeat, selectByNote } from '../editor/selection'
+import { selectByBeat, selectByNote, setRangeFocusByBeat } from '../editor/selection'
 import { seekToBeat } from '../editor/transport'
 import { clearHistory } from '../editor/HistoryRouter'
 import { SelectionOverlay } from './SelectionOverlay'
@@ -42,21 +42,26 @@ export function ScoreView() {
       })
       applyTransportToApi(instance, store.getState().transport)
     })
+    // beatMouseDown/noteMouseDown carry no modifier keys, so capture them off the raw event here.
     let lastClickSeek = false
+    let lastClickShift = false
     const onMouseDownCapture = (e: MouseEvent) => {
       lastClickSeek = e.metaKey || e.ctrlKey
+      lastClickShift = e.shiftKey
     }
     const containerEl = containerRef.current
     containerEl.addEventListener('mousedown', onMouseDownCapture, true)
     instance.beatMouseDown.on((beat) => {
       if (lastClickSeek) seekToBeat(instance, beat)
+      else if (lastClickShift) setRangeFocusByBeat(beat) // Shift+click extends the range to here
       else selectByBeat(beat)
     })
     // Clicking a note head also picks its string (beatMouseDown carries no string). Fires alongside
     // beatMouseDown; both set the same beat, and this additionally pins selectedString. Skipped on a
-    // seek-click so Cmd/Ctrl-click still just moves the playhead.
+    // seek-click so Cmd/Ctrl-click still just moves the playhead, and on a Shift-click so the range
+    // extension (set by beatMouseDown) isn't immediately collapsed back to a single beat.
     instance.noteMouseDown.on((note) => {
-      if (!lastClickSeek) selectByNote(note)
+      if (!lastClickSeek && !lastClickShift) selectByNote(note)
     })
     instance.playerStateChanged.on((args) => {
       const t = store.getState().transport

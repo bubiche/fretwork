@@ -21,6 +21,8 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: 'Click', action: 'Select a beat; click a note to also pick its string' },
       { keys: '← / →', action: 'Select previous / next beat' },
       { keys: '↑ / ↓', action: 'Select string (up / down)' },
+      { keys: 'Shift + ← / →', action: 'Extend the selection by one beat (range)' },
+      { keys: 'Shift + Click', action: 'Extend the selection to the clicked beat' },
       { keys: 'Enter', action: 'Play from the selected beat' },
     ],
   },
@@ -40,6 +42,14 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: '.', action: 'Toggle dotted' },
       { keys: 'i', action: 'Insert an empty beat after the selection' },
       { keys: `${MOD} + Delete`, action: 'Delete the selected beat' },
+    ],
+  },
+  {
+    title: 'Copy / paste (quite janky, avoid if possible)',
+    items: [
+      { keys: `${MOD} + C`, action: 'Copy the selected beat or range' },
+      { keys: `${MOD} + X`, action: 'Cut the selected beat or range' },
+      { keys: `${MOD} + V`, action: 'Paste after the selection (inserts, shifts right)' },
     ],
   },
   {

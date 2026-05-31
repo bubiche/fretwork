@@ -90,3 +90,15 @@ export { SetTempoCommand, setSelectedTempo } from './structural/SetTempo'
 export { InsertMeasureCommand, insertMeasureAfterSelection } from './structural/InsertMeasure'
 export { DeleteMeasureCommand, deleteSelectedMeasure } from './structural/DeleteMeasure'
 export { KEY_SIGNATURE_OPTIONS, type KeySignatureOption } from './structural/keys'
+// ── Phase 5b structural edits: copy / cut / paste ───────────────────────────────────────────────
+export { CompositeCommand } from './Composite'
+export { PasteCommand } from './structural/Paste'
+export { DeleteRangeCommand } from './structural/DeleteRange'
+export {
+  copySelection,
+  cutSelection,
+  pasteClipboard,
+  hasClipboard,
+  clearClipboard,
+  prepareClonedBeats,
+} from './structural/clipboard'
