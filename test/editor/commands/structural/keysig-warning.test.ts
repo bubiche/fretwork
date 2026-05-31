@@ -6,7 +6,7 @@ import { clearHistory } from '../../../../src/editor/HistoryRouter'
 import type { BeatRef } from '../../../../src/editor/selection'
 
 /**
- * Phase 6 Q13 safety: a key signature set on a NON-track-0 staff is dropped on GP7 save/export (GP
+ * Key-sig safety: a key signature set on a NON-track-0 staff is dropped on GP7 save/export (GP
  * keeps one key sig per bar, the first track's). Since auto-save persists every edit, that loss would
  * be silent on the next reload — so the dispatcher raises a non-blocking `warning`. This pins it.
  */

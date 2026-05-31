@@ -15,8 +15,7 @@ import type { BeatRef } from '../../src/editor/selection'
 // `getFermata` of undefined) only manifests THROUGH finish(), and only on a genuinely MULTI-TRACK,
 // multi-staff score where the all-tracks invariant can break. So this runs insert/delete measure on a
 // real 13-track fixture WITH finish() after every op and asserts the bars-per-staff == masterbars
-// invariant across EVERY staff of EVERY track. (Same blind-spot lesson as Phase 3's front-delete
-// previousBeat bug — the snapshot can't see chain corruption.)
+// invariant across EVERY staff of EVERY track.
 
 const fixturePath = fileURLToPath(new URL('../fixtures/sample_harmonic.gp4', import.meta.url))
 

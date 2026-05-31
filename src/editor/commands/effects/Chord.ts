@@ -7,7 +7,7 @@ import { execute } from '../../HistoryRouter'
 import chordData from '../../chords.json'
 
 /**
- * Phase 4b-3 — named chord diagrams. A curated, bundled library (standard 6-string tuning only) that
+ * Named chord diagrams. A curated, bundled library (standard 6-string tuning only) that
  * alphaTab renders from the diagram data: `beat.chordId` indexes into `staff.chords` (a `Map` the
  * renderer reads), so assigning a chord is TWO writes — register the `Chord` in the staff lookup,
  * then point the beat at it by id. Removing is a single id write back to `null`.
@@ -56,8 +56,8 @@ export function buildChord(def: ChordDef): model.Chord {
  * Mirrors {@link SetTremoloCommand}'s captured-BOOLEAN guard, NOT the `=== null` sentinel: `null`
  * is the legal "no chord" value (a cleared beat), so it can't double as "uncaptured".
  *
- * **Registry lifecycle (corrects PHASE_4's "leaving it registered is harmless" assumption — it is
- * NOT).** alphaTab's chord-diagram overview band renders *every* entry in `staff.chords`, not just
+ * **Registry lifecycle — leaving a switched-away chord registered is NOT harmless.** alphaTab's
+ * chord-diagram overview band renders *every* entry in `staff.chords`, not just
  * chords a beat points at. So if switching `C`→`Cm` left `C` registered, a ghost `C` diagram lingers
  * in the band (confirmed in-app). Therefore: on apply, after re-pointing the beat, **garbage-collect
  * the prior chord if no beat references it anymore** (surgical — only the chord this edit orphaned,

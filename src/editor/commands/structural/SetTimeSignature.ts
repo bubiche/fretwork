@@ -20,8 +20,8 @@ const writeSig = (mb: model.MasterBar, s: TimeSig): void => {
 }
 
 /**
- * Change a bar's time signature, propagating forward **until the next pre-existing change**
- * (PHASE_5 decision 3). Time sig lives on `MasterBar` (shared across all tracks), so this is a
+ * Change a bar's time signature, propagating forward **until the next pre-existing change**.
+ * Time sig lives on `MasterBar` (shared across all tracks), so this is a
  * masterbar write — `trackIndex`/`voiceIndex` are irrelevant; only `barIndex` matters.
  *
  * The renderer draws a time-sig glyph only where a masterbar differs from its predecessor, so
@@ -29,7 +29,7 @@ const writeSig = (mb: model.MasterBar, s: TimeSig): void => {
  * every consecutive masterbar that still equals it, stopping at the first that differs (the next
  * pre-existing change). Capture the affected index range ONCE (so redo re-applies the identical
  * range); undo restores each captured old value. No beat reflow — over/underfull bars are accepted
- * (PHASE_5 "no auto-rebar" limitation).
+ * (no auto-rebar).
  */
 export class SetTimeSignatureCommand implements Command {
   readonly relayout = 'score' as const

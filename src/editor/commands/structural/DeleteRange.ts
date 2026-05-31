@@ -5,7 +5,7 @@ import { severLinks, survivingLinkPartners, type RevertSever } from './linkSurge
 
 /**
  * Delete every beat in a contiguous range (one track/staff/voice, may span bars) as ONE undoable
- * command (Phase 5b — the pure model half of `cut`; the clipboard write lives in the dispatcher so
+ * command (the pure model half of `cut`; the clipboard write lives in the dispatcher so
  * redo can't re-fire it). `relayout: 'voice'` so `finish()` reindexes/re-chains the survivors.
  *
  * Per the "no zero-beat voice" invariant (a bar whose voice empties is unrenderable), any bar fully

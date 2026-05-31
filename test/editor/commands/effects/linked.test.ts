@@ -14,7 +14,7 @@ import { clearHistory } from '../../../../src/editor/HistoryRouter'
 import type { BeatRef } from '../../../../src/editor/selection'
 import { makeMinimalScore } from '../../../fixtures/makeMinimalScore'
 
-// PHASE_4 key finding: linked effects (HO/PO, let-ring, slide, tie) are SINGLE-FIELD writes;
+// Key finding: linked effects (HO/PO, let-ring, slide, tie) are SINGLE-FIELD writes;
 // `Note.finish()` derives the origin↔destination pointers. The property harness is finish-free, so
 // THIS test drives apply → finish → undo → finish (like structural-integrity.test.ts) to prove:
 //   (1) finish() actually wires the derived pointers from the one flag we set, and

@@ -19,13 +19,13 @@ export interface Command {
   relayout?: 'none' | 'voice' | 'score'
 }
 
-/** Max entries kept on the undo stack; oldest are dropped on overflow (PLAN.md). */
+/** Max entries kept on the undo stack; oldest are dropped on overflow. */
 export const STACK_CAP = 200
 
 /**
  * Undo/redo stack of Commands. Self-contained: it runs `apply`/`undo` itself, pulling the
  * current Score from the injected accessor, so it has no dependency on alphaTab's api or the
- * store and can be unit-tested with a synthesized Score (Slice C). `HistoryRouter` wraps it
+ * store and can be unit-tested with a synthesized Score. `HistoryRouter` wraps it
  * to bump `scoreVersion`, trigger a re-render, and mirror `canUndo`/`canRedo` into the store.
  */
 export class CommandStack {

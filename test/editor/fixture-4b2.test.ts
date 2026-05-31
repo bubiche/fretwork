@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { Settings, model, importer } from '@coderline/alphatab'
 
-// PHASE_4 §4b-2: the "verify against a real imported file" instructions for tremolo, grace, and the
+// 4b-2: the "verify against a real imported file" instructions for tremolo, grace, and the
 // pinch-harmonic value scale resolve against real GP4 exports. This file LOCKS the three findings the
 // 4b-2 commands are built on, so they're standing tests rather than one-off console checks:
 //   1. tremolo  → `beat.tremoloSpeed` is the populated field (sample_harmonic, 16 = Sixteenth)

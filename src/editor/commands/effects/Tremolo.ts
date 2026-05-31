@@ -5,7 +5,7 @@ import { resolveBeat, type BeatRef } from '../../selection'
 import { execute } from '../../HistoryRouter'
 
 /**
- * Phase 4b-2 — tremolo picking (beat-level). The write is a single field, `beat.tremoloSpeed`
+ * Tremolo picking (beat-level). The write is a single field, `beat.tremoloSpeed`
  * (a `Duration`: 8th/16th/32nd), and `finish()` derives the rest: setting `tremoloSpeed` alone makes
  * finish() populate the `tremoloPicking` object (`{marks, style}`) and flip `isTremolo` — verified
  * empirically against the installed 1.8.2 and `sample_harmonic.gp4` (12 tremolo beats, all

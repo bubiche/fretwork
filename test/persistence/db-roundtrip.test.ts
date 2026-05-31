@@ -7,7 +7,7 @@ import { addFile, updateFileBytes, getFileBytes } from '../../src/persistence/db
 import { exportGp7Bytes } from '../../src/persistence/export'
 
 /**
- * Phase 6 — the actual auto-save PERSISTENCE LOOP, executed headlessly against a polyfilled IndexedDB
+ * The actual auto-save PERSISTENCE LOOP, executed headlessly against a polyfilled IndexedDB
  * (`fake-indexeddb`): import → edit → GP7 export → `updateFileBytes` (overwrite in place) → reload via
  * `getFileBytes` → re-import. Proves the edit survives the round-trip and the full Phase 4/5 effect set
  * (bends/whammy/harmonics) isn't silently degraded by going through GP7 on every save. The only

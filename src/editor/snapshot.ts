@@ -2,17 +2,17 @@ import type { model } from '@coderline/alphatab'
 
 /**
  * A JSON-able tree of only the fields v1 can touch. Cheap, deterministic, no exporter
- * dependency. It is NOT a full-fidelity dump — Phase 6's GP7 round-trip owns that. This is
+ * dependency. It is NOT a full-fidelity dump — GP7 round-trip owns that. This is
  * for *editor invariants*: capture exactly what a Command can mutate, so an apply/undo
  * round-trip can be proven equal by `toEqual`. The shape grows as later phases add effects
- * (bend points, slide flags, palm-mute, …) — see PHASE_2.md.
+ * (bend points, slide flags, palm-mute, …).
  *
  * Deliberately omits regenerating IDs and computed/derived geometry (display bounds, parent
  * backrefs), which would make the snapshot non-deterministic and break stable-read equality.
  */
 export type ScoreSnapshot = {
   title: string
-  // ── Phase 5a: MasterBar fields (shared across tracks). Bar-count lives here AND in each track's
+  // ── MasterBar fields (shared across tracks). Bar-count lives here AND in each track's
   // bars[], so insert/delete-measure round-trips are provable. Time sig + tempo are masterbar-level;
   // key sig is per-Bar (per staff), captured in BarSnapshot below.
   masterBars: MasterBarSnapshot[]
@@ -33,7 +33,7 @@ type TrackSnapshot = {
 }
 
 type BarSnapshot = {
-  // Phase 5a: per-Bar key sig (current-track-only edits can diverge across tracks).
+  // per-Bar key sig (current-track-only edits can diverge across tracks).
   keySignature: number // KeySignature enum (−7..+7 fifths)
   keySignatureType: number // KeySignatureType (major/minor)
   voices: VoiceSnapshot[]
@@ -47,7 +47,7 @@ type BeatSnapshot = {
   duration: number // alphaTab Duration enum value
   dots: number // ChangeDuration toggles beat.dots (0 ↔ 1)
   notes: NoteSnapshot[]
-  // ── Phase 4 effect fields (beat-level) ────────────────────────────────────────────────────
+  // ── Effect fields (beat-level) ────────────────────────────────────────────────────
   // Settable fields only — never derived pointers/spans. Enums captured as their numeric value.
   dynamics: number // DynamicValue
   whammyBarType: number // WhammyType
@@ -61,7 +61,7 @@ type BeatSnapshot = {
 type NoteSnapshot = {
   string: number
   fret: number
-  // ── Phase 4 effect fields (note-level) ────────────────────────────────────────────────────
+  // ── Effect fields (note-level) ────────────────────────────────────────────────────
   isPalmMute: boolean
   isGhost: boolean
   isDead: boolean
@@ -79,8 +79,8 @@ type NoteSnapshot = {
   bendPoints: BendPointSnapshot[] | null
 }
 
-/** A bend/whammy curve point reduced to its two settable coordinates (see the curve recipes in
- *  PHASE_4: offset 0–60, value in quarter-tones). Order is preserved as authored — NOT sorted,
+/** A bend/whammy curve point reduced to its two settable coordinates (offset 0–60, value in
+ *  quarter-tones). Order is preserved as authored — NOT sorted,
  *  because finish() may reorder/collapse points and the editor state is the pre-finish array. */
 type BendPointSnapshot = { offset: number; value: number }
 
@@ -119,7 +119,7 @@ export function scoreSnapshot(score: model.Score): ScoreSnapshot {
             // Sort by string so undo-via-addNote (which appends) is snapshot-equal to the
             // original regardless of array order. removeNote splices without reindexing and
             // addNote appends, so a positional compare would spuriously fail across the whole
-            // note-command family; normalizing here kills that bug class (see PHASE_3 Decisions).
+            // note-command family; normalizing here kills that bug class.
             notes: beat.notes
               .map((note) => ({
                 string: note.string,

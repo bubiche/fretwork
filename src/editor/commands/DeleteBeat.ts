@@ -9,7 +9,7 @@ import { beatToRest } from './DeleteNote'
 /**
  * Remove the beat at `at` entirely. `apply` captures the removed beat object (preserving all its
  * notes/effects for free) and its array index; `undo` re-inserts the same object at that index.
- * Array-position splice handles index 0 with no special case (the doc's `insertBeat` index-0 hole
+ * Array-position splice handles index 0 with no special case (the `insertBeat` index-0 hole
  * doesn't apply here). Needs a relayout to reindex/re-chain the survivors, so `relayout = 'voice'`.
  *
  * The "never leave a voice with zero beats" rule (delete the only beat → collapse to a rest) lives

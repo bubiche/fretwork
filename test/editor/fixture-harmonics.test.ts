@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { Settings, model, importer } from '@coderline/alphatab'
 
-// PHASE_4 §4b-2: the "verify against a real imported file" instruction for harmonics resolves against
+// 4b-2: the "verify against a real imported file" instruction for harmonics resolves against
 // `sample_harmonic.gp4` ("Roundabout", a real GP4 export). It LOCKS the Natural-harmonic encoding:
 // `note.harmonicType === HarmonicType.Natural` with `harmonicValue === 0` (pitch comes from the
 // fret, not an offset). That's the only harmonic flavour this fixture carries — there are NO

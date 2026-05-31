@@ -6,7 +6,7 @@ import { execute } from '../../HistoryRouter'
 import { SetNoteEffectCommand, SetBeatEffectCommand } from './SetEffect'
 
 /**
- * Phase 4a articulation dispatchers — the panel↔command boundary for the pure (non-linked)
+ * Articulation dispatchers — the panel↔command boundary for the pure (non-linked)
  * effects. Each reads `selection`/`selectedString` from the store, builds a command, and routes
  * it through `execute()`. Note-level dispatchers no-op when there's no note on the selected
  * string (mirrors `changeSelectedFret`); the panel also disables the control, but the dispatcher
@@ -14,7 +14,7 @@ import { SetNoteEffectCommand, SetBeatEffectCommand } from './SetEffect'
  */
 
 // Palm mute renders a "P.M.‒‒‒¬" bracket whose span is re-derived in finish(); use 'voice' so the
-// bracket repaints correctly across notes (PHASE_4 table footnote — verify by eye in the browser).
+// bracket repaints correctly across notes (verify by eye in the browser).
 export function toggleSelectedPalmMute(): void {
   toggleNoteFlag('isPalmMute', 'Palm mute', 'voice')
 }
@@ -28,7 +28,7 @@ export function toggleSelectedDead(): void {
 }
 
 /** None → Slight → Wide → None. A single button cycles; the panel labels it with the current
- *  state. (Decided over a submenu: 3 states, less UI; logged in implementation_notes.md.) */
+ *  state. (Decided over a submenu: 3 states, less UI.) */
 export const VIBRATO_CYCLE: model.VibratoType[] = [
   model.VibratoType.None,
   model.VibratoType.Slight,

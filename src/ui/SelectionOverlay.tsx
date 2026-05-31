@@ -29,7 +29,7 @@ export function SelectionOverlay() {
   const score = api.score
   if (!lookup || !score) return null
 
-  // Range selection (Phase 5b): when an anchor is set, draw a box per beat from anchor→focus (owner
+  // Range selection: when an anchor is set, draw a box per beat from anchor→focus (owner
   // decision: per-beat boxes, not one sweep). Reuses the same union-of-staff-bounds geometry as the
   // single-beat box below, applied to each beat in the range.
   if (anchor && sameVoice(anchor, selection)) {

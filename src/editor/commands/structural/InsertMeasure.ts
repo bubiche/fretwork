@@ -6,7 +6,7 @@ import { execute } from '../../HistoryRouter'
 import { store } from '../../store'
 
 /**
- * Insert an empty measure AFTER bar N (PHASE_5 decision 8). A `MasterBar` is shared across all
+ * Insert an empty measure AFTER bar N. A `MasterBar` is shared across all
  * tracks, so this fans out: one new `MasterBar` plus one new `Bar` in **every staff of every
  * track**, keeping the bars-per-staff == masterbars invariant.
  *
@@ -93,11 +93,11 @@ export class InsertMeasureCommand implements Command {
 }
 
 /**
- * Insert a measure after the selected bar (PHASE_5 decision 8 — "after the selected bar; you can
- * repeat"). The new bar lands at `selection.barIndex + 1`, i.e. AFTER the selected bar, so the
+ * Insert a measure after the selected bar (you can repeat to add several). The new bar lands at
+ * `selection.barIndex + 1`, i.e. AFTER the selected bar, so the
  * selected bar itself never moves — the selection stays valid and on the same music with no shift.
  *
- * (The doc's general "+1 bump to stay on the same music" rule is for an UPSTREAM insert — an insert
+ * (The general "+1 bump to stay on the same music" rule is for an UPSTREAM insert — an insert
  * point at or before the selection. The panel only ever inserts after the current bar, so that
  * branch is unreachable here; `InsertMeasureCommand` itself is selection-agnostic and correct for
  * any insert point should a future caller insert elsewhere.)

@@ -6,7 +6,7 @@ import { resolveBeat, type BeatRef } from '../../selection'
 import { execute } from '../../HistoryRouter'
 
 /**
- * Phase 4b — whammy / tremolo bar. The beat-level twin of {@link SetBendCommand}: a `whammyBarType`
+ * Whammy / tremolo bar. The beat-level twin of {@link SetBendCommand}: a `whammyBarType`
  * enum plus a `whammyBarPoints` curve, both moved together (`hasWhammyBar` reads both). Dives go
  * BELOW pitch, so curve values are negative. Same capture/undo discipline as the bend command —
  * boolean capture-once (`WhammyType.None = 0` is a legal prior), deep-copied prior points so undo is
@@ -58,7 +58,7 @@ export class SetWhammyCommand implements Command {
 }
 
 /**
- * Bundled whammy presets — the short list PHASE_4 ships. Negative values dive below pitch. Range
+ * Bundled whammy presets — the short shipped list. Negative values dive below pitch. Range
  * verified against `sample_whammy_dive_full_bend.gp4`, which imports dives down to value −10, so the
  * −8 in "Dive & return" is comfortably in range.
  */

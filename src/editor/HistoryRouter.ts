@@ -42,10 +42,10 @@ function afterMutation(op: string, cmd?: Command | null): void {
   const relayout = cmd?.relayout ?? 'none'
 
   // Structural / tick-changing edits need finish() to reindex beats, re-chain, and regroup beams
-  // before the renderer runs — bare render() only picks up value changes (Phase 2's finding). The
+  // before the renderer runs — bare render() only picks up value changes. The
   // spike proved finish() is idempotent, so calling it after every such edit (incl. undo/redo) is
   // safe. 'voice' and 'score' both run score.finish() for now; the voice-level narrowing is the
-  // deferred perf optimization (Risk 7 — profile first). Guard on settings: the editor model tests
+  // deferred perf optimization (profile first). Guard on settings: the editor model tests
   // drive the stack with a settings-less fake api, where relayout stays 'none'.
   if (relayout !== 'none' && api?.score && api.settings) {
     api.score.finish(api.settings)

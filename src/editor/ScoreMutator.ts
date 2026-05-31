@@ -2,10 +2,9 @@ import { model } from '@coderline/alphatab'
 import { resolveBeat, resolveVoice, type BeatRef } from './selection'
 
 /**
- * Settable scalar note effect fields the editor writes (Phase 4). Boolean flags and enum values
+ * Settable scalar note effect fields the editor writes. Boolean flags and enum values
  * only — never derived `Note`-reference pointers (`hammerPullDestination`, `slideTarget`, …),
- * which `finish()` owns. The 4a slice; 4b adds `harmonicType` (Natural/Pinch only — both verified
- * `harmonicValue 0`, so no value write is needed and the generic single-field command suffices).
+ * which `finish()` owns.
  */
 export type NoteEffectField =
   | 'isPalmMute'
@@ -19,7 +18,7 @@ export type NoteEffectField =
   | 'slideOutType'
   | 'harmonicType'
 
-/** Settable scalar beat effect fields (Phase 4). 4a: `dynamics`. 4b-2 adds `tap` (a plain bool —
+/** Settable scalar beat effect fields. 4a: `dynamics`. 4b-2 adds `tap` (a plain bool —
  *  `tremoloSpeed` is NOT here because it's nullable, so it needs the captured-flag SetTremoloCommand
  *  rather than the generic `=== null`-sentinel command; whammy/grace own their commands too). */
 export type BeatEffectField = 'dynamics' | 'tap'
@@ -49,8 +48,7 @@ export function resolveNote(
 }
 
 /**
- * Thin ergonomic wrapper over alphaTab's Score model. Phase 2 ships only `changeFret`;
- * Phase 3 grows the rest (`addNote`, `deleteNote`, `changeDuration`, …). Commands construct
+ * Thin ergonomic wrapper over alphaTab's Score model. Commands construct
  * a short-lived mutator over the score they're handed in `apply`/`undo`.
  */
 export class ScoreMutator {
@@ -66,7 +64,7 @@ export class ScoreMutator {
   }
 
   /**
-   * Write a single settable effect field on the note at `at`/`stringIndex` (Phase 4). Dumb by
+   * Write a single settable effect field on the note at `at`/`stringIndex`. Dumb by
    * design: resolve, write, return — the Command owns capture-once/undo. Typed so `key` and
    * `value` agree (a `vibrato` write only accepts a `VibratoType`). No-op if the string is empty.
    */
@@ -80,7 +78,7 @@ export class ScoreMutator {
     if (note) note[key] = value
   }
 
-  /** Write a single settable effect field on the beat at `at` (Phase 4). Same contract as
+  /** Write a single settable effect field on the beat at `at`. Same contract as
    *  `setNoteField` but beat-level (dynamics in 4a; whammy/tap/grace/chord/tremolo in 4b). */
   setBeatField<K extends BeatEffectField>(at: BeatRef, key: K, value: model.Beat[K]): void {
     const beat = resolveBeat(this.score, at)
@@ -88,7 +86,7 @@ export class ScoreMutator {
   }
 
   /**
-   * Set (or clear) the bend on the note at `at`/`stringIndex` (Phase 4b). `points = null` with
+   * Set (or clear) the bend on the note at `at`/`stringIndex`. `points = null` with
    * `bendType = None` clears it. Always rebuilds from scratch via `addBendPoint`, which is the only
    * path that keeps the renderer's `maxBendPoint` cache coherent — `finish()` does NOT recompute it
    * (verified), and a directly-assigned array leaves it stale. So we null the cache first, set the
@@ -110,7 +108,7 @@ export class ScoreMutator {
   }
 
   /**
-   * Set (or clear) the whammy bar on the beat at `at` (Phase 4b). Beat-level twin of `applyBend`.
+   * Set (or clear) the whammy bar on the beat at `at`. Beat-level twin of `applyBend`.
    * `addWhammyBarPoint` maintains BOTH `maxWhammyPoint` and `minWhammyPoint` (dives are negative);
    * neither is recomputed by `finish()`, so both must be nulled before rebuilding or a deep→shallow
    * switch (or an undo) strands a stale dive depth in the renderer cache.
@@ -126,7 +124,7 @@ export class ScoreMutator {
   }
 
   /**
-   * Register a chord diagram in the staff's lookup (Phase 4b-3). Routed through alphaTab's own
+   * Register a chord diagram in the staff's lookup. Routed through alphaTab's own
    * `staff.addChord`, which is defensive in exactly the two ways the hand-built path is not: it
    * lazy-inits `staff.chords` when it's `null` (the synthetic `makeMinimalScore` never sets it) and
    * sets `chord.staff = staff` — the backref the renderer reads (`chord.staff.tuning.length`). Keyed
@@ -283,7 +281,7 @@ export class ScoreMutator {
    * `Bar`, to match their current array positions. MUST be called after any mid-array splice of
    * `score.masterBars` or `staff.bars` (insert/delete measure) BEFORE `finish()`.
    *
-   * ⚠ Phase 5 spike finding (contradicts the original PHASE_5 plan): `score.finish()` does NOT
+   * ⚠ Spike finding: `score.finish()` does NOT
    * rebuild these. alphaTab sets `Bar.index`/`MasterBar.index` and the chain links only at *add*
    * time (`Staff.addBar`/`Score.addMasterBar`), and its own structural maintenance only ever
    * appends/pops at the END — never splices mid-array. `Bar.masterBar` is a getter

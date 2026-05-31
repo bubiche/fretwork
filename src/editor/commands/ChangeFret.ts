@@ -103,7 +103,7 @@ function sameTarget(p: NonNullable<typeof pending>, at: BeatRef, stringIndex: nu
  * check is load-bearing: without it, a `1 → Cmd-Z → 2` sequence would mutate and re-apply a
  * command that's no longer on the stack, corrupting it.
  *
- * Slice A: a digit on an empty string is a no-op. Slice B routes that case to `AddNoteCommand`.
+ * A digit on an empty string is a no-op here; that case is routed to `AddNoteCommand`.
  */
 export function changeSelectedFret(digit: number): void {
   const { selection, selectedString, api } = store.getState()

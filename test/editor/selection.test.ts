@@ -124,7 +124,7 @@ describe('openStringLabel (empty-beat string cue)', () => {
   })
 })
 
-describe('reValidateSelection (BeatRef re-resolver, Risk 5)', () => {
+describe('reValidateSelection (BeatRef re-resolver)', () => {
   it('clamps a beatIndex past the end of the bar to the last beat', () => {
     const s = makeMinimalScore({ bars: 2, beatsPerBar: 2 })
     store.setState({ api: { score: s } as unknown as AlphaTabApi, selection: ref(0, 5), selectedString: 1 })

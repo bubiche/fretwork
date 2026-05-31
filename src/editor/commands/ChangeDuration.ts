@@ -7,8 +7,8 @@ import { store } from '../store'
 
 /**
  * Ordered, longest → shortest. The `Duration` enum is non-linear (Whole=1, Half=2, Quarter=4,
- * 8th=8, …) so a "step" is an index move in this list, never arithmetic. PLAN's range stops at
- * 32nd; 64th+ exist in the enum but are out of scope, so the ladder clamps here.
+ * 8th=8, …) so a "step" is an index move in this list, never arithmetic. The supported range stops
+ * at 32nd; 64th+ exist in the enum but are out of scope, so the ladder clamps here.
  */
 export const DURATION_LADDER: model.Duration[] = [
   model.Duration.Whole,

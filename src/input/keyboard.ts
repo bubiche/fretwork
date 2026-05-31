@@ -34,7 +34,7 @@ export function attachKeyboard(): () => void {
       return
     }
 
-    // Clipboard (Phase 5b). preventDefault is REQUIRED — otherwise the browser's native copy/paste
+    // Clipboard. preventDefault is REQUIRED — otherwise the browser's native copy/paste
     // fires on any DOM/canvas selection and races the editor's. ⌘C copy, ⌘X cut, ⌘V paste.
     if (mod && !e.shiftKey && !e.altKey) {
       const k = e.key.toLowerCase()

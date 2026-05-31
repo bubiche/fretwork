@@ -7,7 +7,7 @@ import { execute } from '../../HistoryRouter'
 import { SetNoteEffectCommand } from './SetEffect'
 
 /**
- * Phase 4a linked-effect dispatchers — let-ring, HO/PO, slide, tie. PHASE_4's key finding: most of
+ * Linked-effect dispatchers — let-ring, HO/PO, slide, tie. Key finding: most of
  * these are NOT two-ended commands. Each is a single-field write on one note; `Note.finish()`
  * derives the destination/origin pointers and **clears the flag itself** when there's no valid
  * neighbour. So let-ring / HO/PO / slide reuse the generic {@link SetNoteEffectCommand} with
@@ -51,7 +51,7 @@ export function setSelectedSlideIn(value: model.SlideInType): void {
  * **4a scope: tie is apply-only.** Once finish() copies the origin's fret, the destination's
  * original pitch is gone — a *forward* untie can't recover it (it lives only on this command
  * instance). So the panel disables the control when the note is already a tie destination; removal
- * is via undo, which restores everything. (Logged in implementation_notes.md.)
+ * is via undo, which restores everything.
  */
 export class TieCommand implements Command {
   readonly relayout = 'voice' as const

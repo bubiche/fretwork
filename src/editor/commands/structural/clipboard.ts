@@ -14,16 +14,15 @@ import { DeleteRangeCommand } from './DeleteRange'
 import { severLinks } from './linkSurgery'
 
 /**
- * Phase 5b copy/cut/paste. The clipboard is module-level (non-serializable, like the undo stack) and
+ * Copy/cut/paste. The clipboard is module-level (non-serializable, like the undo stack) and
  * holds a **full-fidelity GP7 binary snapshot of the whole score** plus the copied range — NOT a
  * hand-rolled beat serializer. Rationale (verified during planning, see implementation notes):
  *   - `JsonConverter` type-checks but is absent from the runtime bundle (throws) — unusable.
  *   - A snapshot-field serializer would silently drop any effect the snapshot doesn't enumerate (the
- *     Phase 4 chord-GC failure mode); the round-trip test shares that field set, so both would agree
+ *     chord-GC failure mode); the round-trip test shares that field set, so both would agree
  *     while dropping bends/whammy/harmonics.
  *   - The GP7 binary round-trip (`Gp7Exporter` → `ScoreLoader`) is exported, lossless for bends, and
- *     stable for whammy (a one-time benign duplicate point — same curve). It's also the Phase 6
- *     export path, so building paste on it de-risks Phase 6.
+ *     stable for whammy (a one-time benign duplicate point — same curve).
  * Serializing the whole score per copy is heavier than a fragment but fully faithful, and fine for a
  * single-user tool. Re-parsing the bytes on every paste yields fresh, independent beat objects, so
  * repeated ⌘V just works.
@@ -53,7 +52,7 @@ export function copySelection(): void {
 /**
  * ⌘X — copy, then delete the range as one undo step. The clipboard write lives HERE in the dispatcher
  * (never inside a command's `apply`) so a redo of the delete can't re-fire it and clobber whatever the
- * user copied since the cut (PHASE_5 §cut). Selection collapses to the deletion point.
+ * user copied since the cut. Selection collapses to the deletion point.
  */
 export function cutSelection(): void {
   const { api } = store.getState()
@@ -78,7 +77,7 @@ export function cutSelection(): void {
 
 /**
  * ⌘V — re-parse the clipboard bytes into a fresh score, lift the copied range's beats (now independent
- * objects), and place them at the target (PHASE_5 §paste target). The placement follows the text-editor
+ * objects), and place them at the target. The placement follows the text-editor
  * model the owner chose (hybrid):
  *   - **Caret** (single-beat selection / no real range): INSERT after the selected beat, shifting the
  *     rest right. Nothing is overwritten.

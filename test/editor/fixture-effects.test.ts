@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { Settings, model, importer } from '@coderline/alphatab'
 
-// PHASE_4 §4b-0: every "verify against a real imported file" instruction resolves against an
+// 4b-0: every "verify against a real imported file" instruction resolves against an
 // effects-bearing fixture. `sample_whammy_dive_full_bend.gp4` ("Eruption", a real GP4 export)
 // carries bends, whammy dives, and pinch harmonics — enough to LOCK the bend/whammy value scale that
 // 4b-1's presets are built on. (Eruption itself has no chord diagrams or grace beats, so the

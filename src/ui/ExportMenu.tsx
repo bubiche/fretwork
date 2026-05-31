@@ -4,7 +4,7 @@ import { useStore } from './hooks/useStore'
 import { EXPORT_FORMATS, downloadCurrentScore, type ExportFormat } from '../persistence/export'
 
 /**
- * Header "Export…" control (Phase 6). A button + popover offering the two formats alphaTab can write:
+ * Header "Export…" control. A button + popover offering the two formats alphaTab can write:
  * Guitar Pro 7 (`.gp`, full-fidelity binary) and alphaTex (`.alphatab`, human-readable text). Mirrors
  * the EffectsPanel popover idiom (backdrop + absolute menu). Disabled until a score is loaded.
  */

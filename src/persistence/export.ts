@@ -2,12 +2,12 @@ import { exporter, type model, type Settings } from '@coderline/alphatab'
 import { store } from '../editor/store'
 
 /**
- * Phase 6 export. alphaTab ships two exporters off the public bundle:
+ * Manual export. alphaTab ships two exporters off the public bundle:
  *   - `Gp7Exporter` → GP7 binary (`.gp`), full-fidelity for guitar effects. This is also the
  *     auto-save and copy/paste clone path, so it's the battle-tested one (bends lossless, whammy
- *     stable — see implementation_notes). GP3–8 imports all become GP7 on export (alphaTab writes
+ *     stable). GP3–8 imports all become GP7 on export (alphaTab writes
  *     GP7 only). Known lossy case: a key signature set on a NON-track-0 staff is dropped, because GP
- *     stores key sig once per bar at MasterBar level (= track 0) — Q13 finding.
+ *     stores key sig once per bar at MasterBar level (= track 0).
  *   - `AlphaTexExporter` → alphaTex text (`.alphatab`), human-readable. Round-trips bends/whammy/
  *     harmonics on our fixtures, but is the less-exercised path; treat as the readable companion.
  *

@@ -19,7 +19,7 @@ describe('scoreSnapshot', () => {
     const notes = snap.tracks[0].bars[0].voices[0].beats[0].notes
     expect(notes).toHaveLength(6)
     expect(notes[0]).toMatchObject({ string: 1, fret: 1 })
-    // Phase 4: effect fields are captured at their "off" defaults on a freshly-built note/beat.
+    // Effect fields are captured at their "off" defaults on a freshly-built note/beat.
     expect(notes[0]).toMatchObject({
       isPalmMute: false,
       isGhost: false,

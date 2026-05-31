@@ -73,7 +73,7 @@ export async function addFile(name: string, bytes: ArrayBuffer): Promise<FileMet
 }
 
 /**
- * Overwrite an existing file's bytes in place (Phase 6 auto-save). Keeps the same id/name so the
+ * Overwrite an existing file's bytes in place (auto-save). Keeps the same id/name so the
  * library entry and the open editor stay pointed at it; only the bytes + size change. alphaTab can
  * only write GP7, so a non-GP7 import becomes GP7 content under its original name after the first
  * save — the displayed name is just a label (alphaTab detects format by content on reload). No-op if

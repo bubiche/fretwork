@@ -8,7 +8,7 @@ import type { BeatRef } from '../../src/editor/selection'
 import { makeMinimalScore } from '../fixtures/makeMinimalScore'
 
 /**
- * Phase 6 Q13 — export round-trip fidelity. Two exporters off the public bundle:
+ * Export round-trip fidelity. Two exporters off the public bundle:
  *   - `Gp7Exporter` (`.gp`): the battle-tested path (also copy/paste + auto-save). Asserted lossless
  *     for bends, stable for whammy (one benign duplicate point — see clipboard-fidelity test), and
  *     preserving harmonics. The ONE known lossy case is verified explicitly below: a key signature on
@@ -18,7 +18,7 @@ import { makeMinimalScore } from '../fixtures/makeMinimalScore'
  *     a round-trip and that a second cycle is idempotent (no compounding loss) — it's the less-
  *     exercised path, so this is the bound we claim, not field-level fidelity.
  *
- * (Q14: no JSON fallback test — `JsonConverter` is absent from `alphaTab.mjs`, the app's runtime
+ * (No JSON fallback test — `JsonConverter` is absent from `alphaTab.mjs`, the app's runtime
  * entry; it lives only in `alphaTab.core.mjs`. Documented gap, not a code path.)
  */
 const eruption = fileURLToPath(new URL('../fixtures/sample_whammy_dive_full_bend.gp4', import.meta.url))
@@ -98,7 +98,7 @@ describe('GP7 export fidelity (Gp7Exporter → re-import)', () => {
   })
 })
 
-describe('GP7 key-signature fidelity (Q13 lossy-conversion finding)', () => {
+describe('GP7 key-signature fidelity (lossy-conversion finding)', () => {
   const at = (barIndex: number, trackIndex = 0): BeatRef => ({ trackIndex, staffIndex: 0, voiceIndex: 0, barIndex, beatIndex: 0 })
 
   it('preserves a key signature set on track 0 (the supported path)', () => {
@@ -143,7 +143,7 @@ describe('GP7 key-signature fidelity (Q13 lossy-conversion finding)', () => {
     score.finish(new Settings())
 
     const round = loadBytes(exportGp7Bytes(score, new Settings()))
-    // Dropped on export — reverts to the MasterBar/track-0 value (C / 0). Documented Q13 limitation.
+    // Dropped on export — reverts to the MasterBar/track-0 value (C / 0). Documented limitation.
     expect(round.tracks[1].staves[0].bars[0].keySignature).toBe(model.KeySignature.C)
   })
 })

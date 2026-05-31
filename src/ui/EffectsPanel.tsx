@@ -48,7 +48,7 @@ import {
 } from '../editor/commands'
 
 /**
- * The Phase 4 effects panel — a docked inspector (a bar under the Transport), NOT a static toolbar.
+ * The effects panel — a docked inspector (a bar under the Transport), NOT a static toolbar.
  * Each control reflects the current target's state (subscribes to scoreVersion/selection/
  * selectedString, reads the resolved note/beat) and calls a dispatcher on click. It never mutates
  * the score directly — every edit is a Command (the same invariant the keyboard handlers follow).
@@ -78,7 +78,7 @@ export function EffectsPanel() {
   const staff = beat ? beat.voice.bar.staff : null
   const chordEnabled = !!beat && chordPickerEnabled(staff)
 
-  // ── Bar / Measure (Phase 5a) ──────────────────────────────────────────────────────────────────
+  // ── Bar / Measure ────────────────────────────────────────────────────────────────────────────────
   // Bar-level controls reflect the SELECTED bar and need only a selection (no note). Time sig is on
   // the shared MasterBar; key sig is per-Bar on the SELECTED track's staff (current-track-only).
   const selMaster = score && selection ? (score.masterBars[selection.barIndex] ?? null) : null
@@ -261,7 +261,7 @@ function SlideControl({
 }
 
 // ── Bend submenu (note-level preset list + None) ─────────────────────────────────────────────────
-// Active = `note.hasBend` (PHASE_4: don't reverse-match points→preset for the highlight; presence is
+// Active = `note.hasBend` (don't reverse-match points→preset for the highlight; presence is
 // enough). "None" clears the bend so removal is panel-accessible, not undo-only — mirrors Slide.
 function BendControl({ active, disabled }: { active: boolean; disabled: boolean }) {
   const [open, setOpen] = useState(false)
@@ -523,7 +523,7 @@ function ChordControl({ chordId, disabled }: { chordId: string | null; disabled:
   )
 }
 
-// ── Bar / Measure controls (Phase 5a) ────────────────────────────────────────────────────────────
+// ── Bar / Measure controls ───────────────────────────────────────────────────────────────────────
 const TS_DENOMINATORS = [1, 2, 4, 8, 16, 32]
 
 /** A number input that commits on Enter/blur (not per-keystroke, so a half-typed "1→12" doesn't fire

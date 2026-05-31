@@ -6,7 +6,7 @@ import { execute } from '../../HistoryRouter'
 import { SetNoteEffectCommand, SetBeatEffectCommand } from './SetEffect'
 
 /**
- * Phase 4b-2 "Advanced" dispatchers that reuse the generic single-field commands — tapping and
+ * "Advanced" dispatchers that reuse the generic single-field commands — tapping and
  * harmonics. (Tremolo and grace are nullable / structural, so they own their commands.)
  *
  * - **Tapping** is beat-level (`beat.tap`, the common case — note-level `isLeftHandTapped` is
@@ -16,7 +16,7 @@ import { SetNoteEffectCommand, SetBeatEffectCommand } from './SetEffect'
  *   no `harmonicValue` to set. Artificial is deferred (no fixture calibrates its offset scale).
  *   (Edge case on imported files: switching a note that already has `harmonicValue ≠ 0` — e.g. an
  *   imported Artificial harmonic — to Natural leaves the stale offset, since we don't write the value.
- *   Unreachable for editor-created notes (always value 0); documented in implementation_notes.md.)
+ *   Unreachable for editor-created notes (always value 0).)
  *
  * **Both use `relayout: 'voice'`, NOT the table's `'none'`.** Tap ("T") and Pinch ("P.H.") render as
  * text in an above-staff effect band — the same OwnedTop band class that forced palm mute / vibrato /

@@ -3,9 +3,9 @@ import { updateFileBytes } from './db'
 import { exportGp7Bytes } from './export'
 
 /**
- * Phase 6 auto-save: after each edit, persist the current score back to its IndexedDB library entry
- * so a reload survives. Overwrite-in-place (owner choice, consistent with resolved Q6 "persist final
- * score state only") — the file's bytes become GP7 export bytes under the same id/name.
+ * Auto-save: after each edit, persist the current score back to its IndexedDB library entry
+ * so a reload survives. Overwrite-in-place (owner choice — persist final score state only) — the
+ * file's bytes become GP7 export bytes under the same id/name.
  *
  * Debounced 1s like `scheduleMidiRegen` (HistoryRouter), and for the same reason: a burst of edits
  * (multi-digit fret amend, held dynamics stepper) shouldn't run `Gp7Exporter` on every keystroke.
@@ -35,7 +35,7 @@ function save(id: string): void {
     bytes = exportGp7Bytes(score, settings)
   } catch (err) {
     // Export is best-effort here — a failed auto-save must not crash the editor. The user can still
-    // recover via manual "Export as…". (Q14: no JSON fallback — JsonConverter isn't in the bundle.)
+    // recover via manual "Export as…". (No JSON fallback — JsonConverter isn't in the bundle.)
     console.error('[autosave] GP7 export failed; edit not persisted', err)
     return
   }

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { Settings, model, importer } from '@coderline/alphatab'
 
-// PHASE_4 §4b-3: the "verify against a real imported file" instruction for chord diagrams resolves
+// 4b-3: the "verify against a real imported file" instruction for chord diagrams resolves
 // against `sample_chord.gp4` ("Nothing Else Matters", a real GP4 export). It LOCKS the fact that
 // alphaTab's GP4 importer preserves the chord-diagram library — `staff.chords` is populated and
 // `beat.chord` resolves to a named diagram with full data (strings/firstFret/barre). This is the

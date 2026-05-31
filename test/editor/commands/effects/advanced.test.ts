@@ -14,7 +14,7 @@ import { clearHistory } from '../../../../src/editor/HistoryRouter'
 import type { BeatRef } from '../../../../src/editor/selection'
 import { makeMinimalScore } from '../../../fixtures/makeMinimalScore'
 
-// Phase 4b-2: tap (beat-level bool) and harmonics (note-level enum) ride the generic single-field
+// tap (beat-level bool) and harmonics (note-level enum) ride the generic single-field
 // commands. Plain value writes — no finish() needed (the linked/curve commands own the finish-driven
 // cases). Capture-once `=== null` is load-bearing: `tap=false` and `HarmonicType.None=0` are falsy
 // but legal "off" values, so a truthiness guard would mis-capture.

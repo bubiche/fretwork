@@ -22,8 +22,7 @@ const beat0: BeatRef = {
 }
 
 // Done-when #6, with real teeth (unlike the Touch no-op): apply CHANGES the snapshot, undo
-// RESTORES it deep-equal. The "apply changes the snapshot" half is precisely what Phase 2 could
-// not test because Touch wrote the same value back.
+// RESTORES it deep-equal.
 describe('ChangeFretCommand (pure apply/undo)', () => {
   it('apply changes the snapshot; undo restores it deep-equal', () => {
     const score = makeMinimalScore()

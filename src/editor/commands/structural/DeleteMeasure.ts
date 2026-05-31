@@ -14,7 +14,7 @@ import { store } from '../../store'
  * Spike finding: the score-tempo `Automation` on `masterBars[0]` is injected by
  * `ModelUtils.consolidate()` at import time, NOT by `finish()`. So deleting bar 0 and finishing does
  * NOT inject a spurious automation into the new first bar — by-reference undo is a clean inverse,
- * and no `masterBars[0].tempoAutomations` capture/restore is needed (the doc's concern #4 is moot
+ * and no `masterBars[0].tempoAutomations` capture/restore is needed (that concern is moot
  * for the finish() path; verified empirically).
  *
  * Guard against deleting the only remaining measure lives in the dispatcher (push no command). The
@@ -80,7 +80,7 @@ export function deleteSelectedMeasure(): void {
   // reValidateSelection, which reads the live store selection and clamps its beatIndex within the
   // destination bar. If we shifted after execute, reValidateSelection would clamp against the wrong
   // (pre-shift) bar and our setState would then discard the clamp — leaving beatIndex past the end of
-  // a shorter destination bar (the doc's "set barIndex, then let reValidateSelection clamp" order).
+  // a shorter destination bar (the "set barIndex, then let reValidateSelection clamp" order).
   store.setState({ selection: { ...selection, barIndex: Math.max(0, selection.barIndex - 1) } })
   execute(new DeleteMeasureCommand(selection))
 }

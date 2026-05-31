@@ -6,7 +6,7 @@ import { resolveVoice, type BeatRef } from '../../selection'
 import { execute } from '../../HistoryRouter'
 
 /**
- * Phase 4b-2 — grace notes. Unlike the other effects this is **not** a field write: a real GP grace
+ * Grace notes. Unlike the other effects this is **not** a field write: a real GP grace
  * note is a *separate* small beat inserted BEFORE the main one (`displayDuration 0`, so it borrows no
  * bar time), carrying its own pitch. Verified against `sample_harmonic.gp4` (bar 185: quarter →
  * grace-8th → half) and confirmed `finish()` does NOT clobber the grace beat's pitch (unlike a tie),
@@ -74,7 +74,7 @@ export class InsertGraceBeatCommand implements Command {
  *  panel** in 4b-2 (remove with undo). NB this is a SCOPE choice, not a forced one: unlike a tie (whose
  *  removal is genuinely irreversible because finish() overwrites the destination's pitch), a grace beat
  *  is a self-contained beat and could be removed by deleting it — a "Remove grace" control is a clean
- *  follow-up if the owner wants panel-side removal. (Flagged to the owner; logged in implementation_notes.) */
+ *  follow-up if the owner wants panel-side removal. (Flagged to the owner.) */
 export const GRACE_OPTIONS: { label: string; value: model.GraceType }[] = [
   { label: 'Before beat', value: model.GraceType.BeforeBeat },
   { label: 'On beat', value: model.GraceType.OnBeat },

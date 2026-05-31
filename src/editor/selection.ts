@@ -10,7 +10,7 @@ export type BeatRef = {
 }
 
 /**
- * A contiguous beat range within ONE track/staff/voice (Phase 5b copy/cut/paste). `from`/`to` are
+ * A contiguous beat range within ONE track/staff/voice (copy/cut/paste). `from`/`to` are
  * inclusive and ascending (`from` ≤ `to` by (barIndex, beatIndex)). Built from the store's
  * `anchor` + `selection` by {@link normalizeRange}; consumed by the clipboard commands.
  */
@@ -34,7 +34,7 @@ export function selectByBeat(beat: model.Beat): void {
 /**
  * Shift+click: set the range FOCUS to the clicked beat, seeding `anchor` from the current selection
  * if no range is active yet. Bails if the click lands in a different track/staff/voice than the
- * existing selection — a range is single-track only (PHASE_5 §range selection model). Falls back to
+ * existing selection — a range is single-track only. Falls back to
  * a plain select when there's no current selection to anchor against.
  */
 export function setRangeFocusByBeat(beat: model.Beat): void {
@@ -132,7 +132,7 @@ export function extendSelection(dx: -1 | 1): void {
 
 /**
  * Re-validate the stored selection after a structural edit (insert/delete) AND its undo/redo —
- * the Phase-2-deferred `BeatRef` re-resolver (Risk 5). `BeatRef` is index-based and stable under
+ * the `BeatRef` re-resolver. `BeatRef` is index-based and stable under
  * value edits, but insert/delete shift indices, so a stored `beatIndex` may now point past the end
  * (or at a different beat). Clamp it to a beat that still exists: same `beatIndex` if valid, else
  * the bar's last beat; if the bar emptied, walk back to the previous non-empty bar. `selectedString`

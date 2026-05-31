@@ -19,7 +19,7 @@ import { clearHistory } from '../../../../src/editor/HistoryRouter'
 import type { BeatRef } from '../../../../src/editor/selection'
 import { makeMinimalScore } from '../../../fixtures/makeMinimalScore'
 
-// PHASE_4 §testing point 2: bend/whammy need a finish()-DRIVEN test — finish() may mutate the points
+// bend/whammy need a finish()-DRIVEN test — finish() may mutate the points
 // array, so the round-trip must run apply → finish → undo → finish and assert the array (and the
 // derived render caches) are restored EXACTLY. (Empirically 1.8.2 leaves these recipes untouched;
 // the deep-copy-and-restore in the commands is correct either way, which is what these tests prove.)

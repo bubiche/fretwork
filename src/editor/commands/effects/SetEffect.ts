@@ -10,9 +10,9 @@ import {
 } from '../../ScoreMutator'
 
 /**
- * Generic "set one settable effect field" command — the shape every Phase 4a effect shares.
+ * Generic "set one settable effect field" command — the shape every basic effect shares.
  *
- * The doc's "key finding" is load-bearing here: each effect (incl. the linked ones — HO/PO,
+ * A key finding is load-bearing here: each effect (incl. the linked ones — HO/PO,
  * let-ring, slide, tie) is a **single-field write on one resolved note**; `finish()` derives all
  * the cross-note wiring. So one parameterized command covers palm mute, ghost, dead, vibrato,
  * let-ring, HO/PO, slide, and tie — they differ only in `key`, `value`, `relayout`, and label.

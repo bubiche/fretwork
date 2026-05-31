@@ -36,14 +36,14 @@ export type StoreState = {
   files: FileMeta[]
   error: string | null
   // Non-blocking advisory (yellow), distinct from `error` (red). e.g. an edit that applies in-model but
-  // won't survive save/export — currently the non-track-0 key-sig drop (Phase 6 Q13).
+  // won't survive save/export — currently the non-track-0 key-sig drop.
   warning: string | null
   api: AlphaTabApi | null
   transport: TransportState
   tracks: TrackUiState[]
   view: ViewState
   selection: BeatRef | null
-  // Phase 5b: the fixed end of a range selection (`selection` is the moving focus). A range is
+  // the fixed end of a range selection (`selection` is the moving focus). A range is
   // `[anchor, selection]` normalized to ascending order, within ONE track/staff/voice. `null` = no
   // range (single-beat selection). Set by Shift+arrows / Shift+click; cleared by any plain nav.
   anchor: BeatRef | null

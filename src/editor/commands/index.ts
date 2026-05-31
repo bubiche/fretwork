@@ -22,7 +22,6 @@ export {
 } from './ChangeDuration'
 export { InsertBeatCommand, insertBeatAfterSelection } from './InsertBeat'
 export { DeleteBeatCommand, deleteSelectedBeat } from './DeleteBeat'
-// ── Phase 4a effects ──────────────────────────────────────────────────────────────────────────
 export { SetNoteEffectCommand, SetBeatEffectCommand } from './effects/SetEffect'
 export {
   toggleSelectedPalmMute,
@@ -41,7 +40,6 @@ export {
   setSelectedSlideOut,
   setSelectedSlideIn,
 } from './effects/linked'
-// ── Phase 4b effects: curves (bend + whammy presets) ────────────────────────────────────────────
 export {
   SetBendCommand,
   BEND_PRESETS,
@@ -56,7 +54,6 @@ export {
   setSelectedWhammy,
   clearSelectedWhammy,
 } from './effects/Whammy'
-// ── Phase 4b-2 effects: tremolo, tap, harmonics, grace ──────────────────────────────────────────
 export {
   toggleSelectedTap,
   setSelectedHarmonic,
@@ -74,7 +71,6 @@ export {
   GRACE_OPTIONS,
   setSelectedGrace,
 } from './effects/Grace'
-// ── Phase 4b-3 effects: chord diagrams ──────────────────────────────────────────────────────────
 export {
   SetChordCommand,
   CHORD_LIBRARY,
@@ -85,14 +81,12 @@ export {
   setSelectedChord,
   clearSelectedChord,
 } from './effects/Chord'
-// ── Phase 5a structural edits: bar & measure family ─────────────────────────────────────────────
 export { SetTimeSignatureCommand, setSelectedTimeSignature } from './structural/SetTimeSignature'
 export { SetKeySignatureCommand, setSelectedKeySignature } from './structural/SetKeySignature'
 export { SetTempoCommand, setSelectedTempo } from './structural/SetTempo'
 export { InsertMeasureCommand, insertMeasureAfterSelection } from './structural/InsertMeasure'
 export { DeleteMeasureCommand, deleteSelectedMeasure } from './structural/DeleteMeasure'
 export { KEY_SIGNATURE_OPTIONS, type KeySignatureOption } from './structural/keys'
-// ── Phase 5b structural edits: copy / cut / paste ───────────────────────────────────────────────
 export { CompositeCommand } from './Composite'
 export { PasteCommand } from './structural/Paste'
 export { DeleteRangeCommand } from './structural/DeleteRange'

@@ -7,8 +7,8 @@ import { resolveVoice, type BeatRef } from '../../src/editor/selection'
 import { makeMinimalScore } from '../fixtures/makeMinimalScore'
 
 /**
- * Phase 5b PASTE FIDELITY — NOT the snapshot round-trip test, by design (see PHASE_5 §"Verification
- * for paste"). The property round-trip cannot prove paste fidelity: it can't author a cross-position
+ * PASTE FIDELITY — NOT the snapshot round-trip test, by design. The property round-trip
+ * cannot prove paste fidelity: it can't author a cross-position
  * paste, and its field set is the very thing we route around (a snapshot-based serializer would drop
  * any effect the snapshot doesn't enumerate). So we prove paste a different way:
  *

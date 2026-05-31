@@ -39,20 +39,20 @@ import type { BeatRef } from '../../src/editor/selection'
 import { makeMinimalScore } from '../fixtures/makeMinimalScore'
 
 /**
- * PLAN's "critical invariant": a random sequence of Commands, applied in order and then undone in
+ * The critical round-trip invariant: a random sequence of Commands, applied in order and then undone in
  * reverse, must return the score to a snapshot deep-equal to the original.
  *
- * This is the property harness in its FINAL shape (PHASE_3 §What the snapshot test does NOT cover):
+ * This is the property harness in its FINAL shape:
  *  - Targets are resolved against the LIVE score AT APPLY TIME (interleaved generate→apply), not
- *    frozen up front. Once Slice C adds Insert/DeleteBeat, frozen refs would shift and later
+ *    frozen up front. Once Insert/DeleteBeat are added, frozen refs would shift and later
  *    commands would silently no-op; the round-trip would still pass with near-zero coverage.
  *  - A non-no-op TRIPWIRE counts how many commands actually mutated the snapshot and fails if that
  *    is implausibly low — a guard against silent under-coverage.
  *  - The model round-trip is valid WITHOUT finish(): resolveBeat reads array position, so value/
  *    note edits are honest even with stale indices. Structural-integrity (beat.index, chain) is
- *    guarded separately in structural-integrity.test.ts (Slice C), not here.
+ *    guarded separately in structural-integrity.test.ts, not here.
  *
- * Slice A seeds the generator with ChangeFret only; B and C push more generators into GENERATORS.
+ * The generator set grows as commands are added: each command class pushes its generator into GENERATORS.
  */
 
 // Deterministic PRNG (mulberry32) so a failing sequence reproduces from its seed.
@@ -152,7 +152,7 @@ const genDeleteBeat: Generator = (score, rand) => {
   return new DeleteBeatCommand(p.at)
 }
 
-// ── Phase 4a effect generators ────────────────────────────────────────────────────────────────
+// ── Basic effect generators ────────────────────────────────────────────────────────────────
 // Each builds a single-field-set command against a random note (or beat) with a value GUARANTEED
 // to differ from the current one, so a non-null command always mutates the snapshot — keeping the
 // tripwire's mutation ratio honest. Linked effects round-trip finish-free because the snapshot
@@ -202,7 +202,7 @@ const genDynamics: Generator = (score, rand) => {
   return new SetBeatEffectCommand(p.at, 'dynamics', diffEnum(rand, p.beat.dynamics, 8) as model.DynamicValue, { relayout: 'voice' })
 }
 
-// ── Phase 4b curve generators (bend + whammy) ───────────────────────────────────────────────────
+// ── Curve generators (bend + whammy) ───────────────────────────────────────────────────
 // A bend/whammy is a (type, points) pair, so "differs from current" must compare BOTH — two presets
 // can share a BendType (½/full/1½ are all `Bend`) yet differ in points. Picking the already-applied
 // preset would be a no-op and sag the tripwire's >0.9 mutation ratio (mirrors genTie's guard), so we
@@ -238,7 +238,7 @@ const genWhammy: Generator = (score, rand) => {
   return new SetWhammyCommand(p.at, preset.whammyType, preset.points)
 }
 
-// ── Phase 4b-2 generators (tap, harmonics, tremolo, grace) ──────────────────────────────────────
+// ── tap, harmonics, tremolo, grace generators ──────────────────────────────────────
 
 /** Toggle a random beat's tap flag (beat-level bool — always mutates). */
 const genTap: Generator = (score, rand) => {
@@ -290,7 +290,7 @@ const genChord: Generator = (score, rand) => {
   return new SetChordCommand(p.at, def.name, buildChord(def))
 }
 
-// ── Phase 5a structural generators (bar & measure family) ────────────────────────────────────────
+// ── Structural generators (bar & measure family) ────────────────────────────────────────
 // Each targets a random masterbar/bar. Time/key/tempo pick a value GUARANTEED to differ from the
 // current one (like genChord) so a non-null command always mutates the (now masterbar-aware)
 // snapshot; insert/delete always change the bar count. These round-trip finish-free — relinkStructure
@@ -349,9 +349,9 @@ const genDeleteMeasure: Generator = (score, rand) => {
   return new DeleteMeasureCommand(at)
 }
 
-// ── Phase 5b structural generator: delete-range (the pure half of cut) ────────────────────────────
+// ── Structural generator: delete-range (the pure half of cut) ────────────────────────────
 // Picks two random positions on track 0 / voice 0 and deletes the normalized range between them. May
-// span bars; a fully-covered bar collapses to a rest. Registered here per PHASE_5 §"cut". (PasteCommand
+// span bars; a fully-covered bar collapses to a rest. (PasteCommand
 // is deliberately NOT registered — its fidelity is proven by clipboard-fidelity.fixture.test.ts, since
 // the snapshot field set is the very thing the GP7 clone routes around.)
 const genDeleteRange: Generator = (score, rand) => {
@@ -380,7 +380,6 @@ const GENERATORS: Generator[] = [
   genChangeDuration,
   genInsertBeat,
   genDeleteBeat,
-  // Phase 4a effects
   noteFlagGen('isPalmMute', 'voice'),
   noteFlagGen('isGhost', 'none'),
   noteFlagGen('isDead', 'none'),
@@ -391,23 +390,18 @@ const GENERATORS: Generator[] = [
   noteEnumGen('slideInType', 3, 'voice'),
   noteEnumGen('slideOutType', 7, 'voice'),
   genDynamics,
-  // Phase 4b curves
   genBend,
   genWhammy,
-  // Phase 4b-2 effects
   genTap,
   genHarmonic,
   genTremolo,
   genGrace,
-  // Phase 4b-3
   genChord,
-  // Phase 5a structural (bar & measure family)
   genSetTimeSignature,
   genSetKeySignature,
   genSetTempo,
   genInsertMeasure,
   genDeleteMeasure,
-  // Phase 5b structural (delete-range / cut)
   genDeleteRange,
 ]
 

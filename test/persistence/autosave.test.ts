@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 /**
- * Phase 6 auto-save ORCHESTRATION (debounce / flush-on-switch / failure-safety). The actual GP7
+ * Auto-save ORCHESTRATION (debounce / flush-on-switch / failure-safety). The actual GP7
  * export + IndexedDB write are mocked here — those are covered end-to-end in db-roundtrip.test.ts and
  * export.fixture.test.ts. This file pins the timing-dependent logic in the data-loss-sensitive path:
  * the flush-on-file-switch especially, which has no other coverage.

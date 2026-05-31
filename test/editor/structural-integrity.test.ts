@@ -5,7 +5,7 @@ import { resolveVoice } from '../../src/editor/selection'
 import type { BeatRef } from '../../src/editor/selection'
 import { makeMinimalScore } from '../fixtures/makeMinimalScore'
 
-// PHASE_3 §What the snapshot test does NOT cover, Hole 1: the snapshot reads array POSITIONS and
+// The snapshot reads array POSITIONS and
 // only {duration, dots, string, fret}. It can't see beat.index, the nextBeat/previousBeat chain, or
 // ticks — the precise things finish() repairs after a structural edit. So the structural commands
 // need THIS test (not the round-trip) to guard them: apply (and undo), run finish(), and assert the

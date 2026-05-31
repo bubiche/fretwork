@@ -6,7 +6,7 @@ import type { BeatRef } from '../../selection'
 import { execute } from '../../HistoryRouter'
 
 /**
- * Phase 4b — note bend. A bend is a `bendType` enum plus a `bendPoints` curve; both must move
+ * Note bend. A bend is a `bendType` enum plus a `bendPoints` curve; both must move
  * together (the renderer reads both — `hasBend` is `bendPoints !== null && bendType !== None`). So
  * unlike the 4a single-field effects this can't ride `SetNoteEffectCommand`; it gets its own command.
  *
@@ -14,8 +14,8 @@ import { execute } from '../../HistoryRouter'
  *  - CAPTURE-ONCE via a boolean `captured` flag, NOT `=== null`: `BendType.None = 0` is a legal prior
  *    and `bendPoints` is legitimately `null` when there's no bend — neither can double as a sentinel.
  *  - Prior points are deep-copied to `[offset, value]` tuples at capture. This is deliberate and
- *    load-bearing: PHASE_4 warned `finish()` may splice/normalize the live array. (Empirically the
- *    installed 1.8.2 leaves these recipes untouched — logged in implementation_notes.md — but the
+ *    load-bearing: `finish()` may splice/normalize the live array. (Empirically the
+ *    installed 1.8.2 leaves these recipes untouched — but the
  *    deep copy makes undo correct regardless of what finish() does to the array, so undo never
  *    depends on finish's array behaviour.)
  *  - `relayout: 'voice'` → `afterMutation` runs `score.finish()`, which lays out the bend glyph band.
@@ -69,11 +69,11 @@ export class SetBendCommand implements Command {
 }
 
 /**
- * The bundled bend presets — the short curve list PHASE_4 ships (the graphical curve editor is a
- * Phase 7 stretch item). Each writes `bendType` AND the standard `bendPoints`. Value scale verified
+ * The bundled bend presets — the short curve list shipped (the graphical curve editor is a
+ * later stretch item). Each writes `bendType` AND the standard `bendPoints`. Value scale verified
  * empirically against `test/fixtures/sample_whammy_dive_full_bend.gp4` ("Eruption"): a full-step
- * bend imports as value 4, a half-step as value 2 — i.e. `value / 2 = semitones`. (See PHASE_4
- * "Curve presets" and the fixture-effects test.)
+ * bend imports as value 4, a half-step as value 2 — i.e. `value / 2 = semitones`. (See the
+ * fixture-effects test.)
  */
 export type BendPreset = {
   id: string

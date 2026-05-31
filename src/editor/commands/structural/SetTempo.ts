@@ -6,7 +6,7 @@ import { store } from '../../store'
 
 /**
  * Drop a tempo marker at the START of the selected bar (`ratioPosition = 0`). One marker per bar in
- * v1 — replaces the bar's existing `tempoAutomations` array entirely (PHASE_5 decision 7). Mid-bar
+ * v1 — replaces the bar's existing `tempoAutomations` array entirely. Mid-bar
  * tempo automation is out of scope.
  *
  * `Automation.buildTempoAutomation(isLinear, ratioPosition, value, reference, isVisible)`: the 4th
