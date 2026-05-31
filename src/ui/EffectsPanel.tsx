@@ -11,6 +11,10 @@ import {
   cycleSelectedVibrato,
   stepSelectedDynamics,
   DYNAMICS_LADDER,
+  setSelectedDuration,
+  toggleSelectedDot,
+  setSelectedFret,
+  MAX_FRET,
   toggleSelectedLetRing,
   toggleSelectedHammerPull,
   tieSelectedNote,
@@ -87,6 +91,23 @@ export function EffectsPanel() {
 
   return (
     <div style={barStyle}>
+      {/* Rhythm + Note lead the panel: the two edits a new user reaches for first (note length and
+          fret) get the leftmost, plainest controls — clickable equivalents of the −/+ and 0–9 keys.
+          Rhythm is beat-level (enabled on any selection); Fret targets the selected string and adds a
+          note on an empty one, mirroring the keyboard. */}
+      <Group title="Rhythm">
+        <DurationButtons duration={beat?.duration ?? null} disabled={!beat} />
+        <Toggle label="Dotted" active={!!beat?.dots} disabled={!beat} onClick={toggleSelectedDot} />
+      </Group>
+
+      <span style={groupDividerStyle} />
+
+      <Group title="Note">
+        <FretControl fret={note?.fret ?? null} disabled={!hasSelection} />
+      </Group>
+
+      <span style={groupDividerStyle} />
+
       <Group title="Articulation">
         <Toggle label="Palm mute" active={!!note?.isPalmMute} disabled={!hasNote} onClick={toggleSelectedPalmMute} />
         <Toggle label="Ghost" active={!!note?.isGhost} disabled={!hasNote} onClick={toggleSelectedGhost} />
@@ -700,6 +721,79 @@ function Stepper({
   )
 }
 
+// ── Rhythm: clickable duration picker (the −/+ keys made visible) ────────────────────────────────
+// Fraction labels (1, 1⁄2, … 1⁄32) instead of musical glyphs (𝅝 𝅗𝅥 …), which render inconsistently
+// across system fonts. Order = longest→shortest, matching DURATION_LADDER. The active value is
+// highlighted so a new user can see the current length and click another to change it.
+const DURATION_BUTTONS: { value: model.Duration; label: string; title: string }[] = [
+  { value: model.Duration.Whole, label: '1', title: 'Whole note' },
+  { value: model.Duration.Half, label: '1⁄2', title: 'Half note' },
+  { value: model.Duration.Quarter, label: '1⁄4', title: 'Quarter note' },
+  { value: model.Duration.Eighth, label: '1⁄8', title: 'Eighth note' },
+  { value: model.Duration.Sixteenth, label: '1⁄16', title: 'Sixteenth note' },
+  { value: model.Duration.ThirtySecond, label: '1⁄32', title: 'Thirty-second note' },
+]
+
+function DurationButtons({ duration, disabled }: { duration: model.Duration | null; disabled: boolean }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: '0.2rem' }}>
+      {DURATION_BUTTONS.map((d) => (
+        <button
+          key={d.value}
+          type="button"
+          title={d.title}
+          disabled={disabled}
+          onClick={() => setSelectedDuration(d.value)}
+          style={btnStyle(duration === d.value, disabled)}
+        >
+          {d.label}
+        </button>
+      ))}
+    </span>
+  )
+}
+
+// ── Note: clickable fret pad (the 0–9 keys made visible) ─────────────────────────────────────────
+// A 0–24 grid popover, the mouse path to fret entry. The trigger shows the selected note's current
+// fret (or — for an empty string). Clicking a cell sets the fret, adding a note if the string is
+// empty — same routing as the keyboard, via setSelectedFret.
+function FretControl({ fret, disabled }: { fret: number | null; disabled: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }}>
+      <Toggle
+        label={`Fret: ${fret ?? '—'} ▾`}
+        active={fret != null}
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+      />
+      {open && !disabled && (
+        <>
+          <div style={backdropStyle} onClick={() => setOpen(false)} />
+          <div style={fretPopoverStyle}>
+            <div style={popLabelStyle}>Fret (sets the selected string)</div>
+            <div style={fretGridStyle}>
+              {Array.from({ length: MAX_FRET + 1 }, (_, n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => {
+                    setSelectedFret(n)
+                    setOpen(false)
+                  }}
+                  style={fretCellStyle(fret === n)}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
 function PopItem({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} style={popItemStyle(active)}>
@@ -789,6 +883,32 @@ const chordPopoverStyle = {
   maxHeight: 320,
   overflowY: 'auto' as const,
   minWidth: 200,
+}
+// Fret pad: a fixed-width grid of small cells (0–24). 6 columns keeps it compact and roughly square.
+const fretPopoverStyle = {
+  ...popoverStyle,
+  minWidth: 0,
+}
+const fretGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(6, 1fr)',
+  gap: 3,
+  padding: '0 4px 4px',
+}
+function fretCellStyle(active: boolean) {
+  return {
+    width: 28,
+    fontSize: '0.78rem',
+    padding: '3px 0',
+    textAlign: 'center' as const,
+    borderRadius: 4,
+    cursor: 'pointer',
+    border: `1px solid ${active ? '#5a6ee0' : '#ddd'}`,
+    background: active ? '#5a6ee0' : '#fafafa',
+    color: active ? '#fff' : '#333',
+    fontWeight: active ? 600 : 400,
+    fontVariantNumeric: 'tabular-nums' as const,
+  }
 }
 const chordRowStyle = {
   display: 'flex',

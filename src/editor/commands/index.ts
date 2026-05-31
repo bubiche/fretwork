@@ -1,6 +1,7 @@
 export {
   ChangeFretCommand,
   changeSelectedFret,
+  setSelectedFret,
   resetFretAmend,
   MAX_FRET,
 } from './ChangeFret'
@@ -15,6 +16,7 @@ export {
 export {
   ChangeDurationCommand,
   stepSelectedDuration,
+  setSelectedDuration,
   toggleSelectedDot,
   DURATION_LADDER,
 } from './ChangeDuration'

@@ -55,6 +55,24 @@ export class ChangeFretCommand implements FretAmendable {
   }
 }
 
+/**
+ * Set the selected string's fret to an exact value — the clickable fret pad in the panel, vs.
+ * `changeSelectedFret`'s typed-digit path. Like the keyboard, an empty string routes to AddNote and
+ * an occupied one to ChangeFret. A pad click is a complete value, so it ends any open multi-digit
+ * amend window (a following pad click or digit starts fresh rather than amending this one).
+ */
+export function setSelectedFret(fret: number): void {
+  const { selection, selectedString, api } = store.getState()
+  if (!selection || !api?.score) return
+  const clamped = Math.max(0, Math.min(MAX_FRET, Math.round(fret)))
+  const note = resolveNote(api.score, selection, selectedString)
+  resetFretAmend()
+  const cmd = note
+    ? new ChangeFretCommand(selection, selectedString, clamped)
+    : new AddNoteCommand(selection, selectedString, clamped)
+  execute(cmd)
+}
+
 // ── Multi-digit amend window ────────────────────────────────────────────────────────────────
 // GP behavior: type `1` → fret 1, then `2` within ~500ms → fret 12 (ONE undo entry). The window
 // lives here in the dispatcher, never in the pure Command. Module-level mutable state — reset it

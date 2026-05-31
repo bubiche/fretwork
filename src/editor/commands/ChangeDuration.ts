@@ -72,6 +72,19 @@ export function stepSelectedDuration(dir: -1 | 1): void {
   execute(new ChangeDurationCommand(selection, DURATION_LADDER[next], beat.dots))
 }
 
+/**
+ * Set the selected beat's duration to an exact value (the clickable Rhythm picker in the panel,
+ * vs. `stepSelectedDuration`'s relative −/+). Dots are preserved. No-op if unchanged.
+ */
+export function setSelectedDuration(duration: model.Duration): void {
+  const { selection, api } = store.getState()
+  if (!selection || !api?.score) return
+  const beat = resolveBeat(api.score, selection)
+  if (!beat) return
+  if (beat.duration === duration) return
+  execute(new ChangeDurationCommand(selection, duration, beat.dots))
+}
+
 /** Toggle the dotted flag (0 ↔ 1) on the selected beat. */
 export function toggleSelectedDot(): void {
   const { selection, api } = store.getState()

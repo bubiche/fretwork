@@ -53,9 +53,8 @@ export function App() {
         }}
       >
         <strong>fretwork</strong>
-        <span style={{ color: '#666', fontSize: '0.85rem' }}>Phase 1 — viewer</span>
         <span style={{ color: '#888', fontSize: '0.8rem' }}>
-          Click a beat to select · ⌘/Ctrl-click or Enter to seek
+          Click a note · type 0–9 = fret · ↑/↓ switch string · −/+ = length · Enter plays from here
         </span>
         <span style={{ marginLeft: 'auto' }} />
         <ExportMenu />
