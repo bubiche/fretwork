@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@coderline/alphatab": "^1.8.2",
+    "@spotify/basic-pitch": "1.0.1",
+    "@tensorflow/tfjs": "3.21.0",
     "preact": "^10.29.1"
   },
   "devDependencies": {

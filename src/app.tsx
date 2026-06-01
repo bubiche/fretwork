@@ -19,6 +19,30 @@ export function App() {
   useEffect(() => attachKeyboard(), [])
   useEffect(() => attachAutosave(), [])
 
+  // Dev-only hook: `window.__transcribe()` opens a file picker (or pass a File directly) and runs the
+  // audio→tab pipeline, opening the result as a new tab. No UI yet — wired up by hand for now.
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    const fn = (file?: File) => {
+      import('./transcribe/transcribe').then(({ transcribeToNewTab }) => {
+        if (file instanceof File) return void transcribeToNewTab(file).catch(console.error)
+        const input = document.createElement('input')
+        input.type = 'file'
+        // Intentionally unrestricted: a narrow accept can hide .wav in some pickers, and this is dev-only.
+        input.onchange = () => {
+          const f = input.files?.[0]
+          if (f) transcribeToNewTab(f).catch(console.error)
+        }
+        input.click()
+      })
+    }
+    ;(window as unknown as { __transcribe?: typeof fn }).__transcribe = fn
+    console.info('[transcribe] dev hook ready — call window.__transcribe() to pick an audio file')
+    return () => {
+      delete (window as unknown as { __transcribe?: typeof fn }).__transcribe
+    }
+  }, [])
+
   function onDrop(ev: JSX.TargetedDragEvent<HTMLDivElement>) {
     ev.preventDefault()
     const dt = ev.dataTransfer

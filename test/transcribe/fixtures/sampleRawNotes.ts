@@ -1,0 +1,55 @@
+import type { NoteEventTime } from '../../../src/transcribe/basicPitch'
+
+// The actual 41 raw NoteEventTime[] basic-pitch produced for test/fixtures/transcribe-sample.wav on the
+// WebGL backend (captured from an in-browser run). pitchBends are omitted — the quantizer ignores
+// them. Kept verbatim so the monophonic collapse stays pinned to real model output, not idealised input.
+const RAW: [pitchMidi: number, startTimeSeconds: number, amplitude: number][] = [
+  [59, 0, 0.2232],
+  [40, 0, 0.7104],
+  [64, 0.02322, 0.309],
+  [52, 0.03483, 0.3752],
+  [40, 0.08127, 0.7222],
+  [40, 0.15093, 0.6483],
+  [43, 0.31347, 0.1841],
+  [43, 0.38313, 0.6899],
+  [67, 0.39474, 0.2901],
+  [55, 0.42957, 0.3308],
+  [43, 0.53406, 0.6499],
+  [45, 0.71982, 0.2096],
+  [45, 0.78948, 0.6906],
+  [69, 0.80109, 0.3348],
+  [57, 0.82431, 0.3311],
+  [45, 0.9288, 0.6655],
+  [47, 1.07973, 0.1902],
+  [71, 1.19583, 0.3061],
+  [47, 1.19583, 0.7203],
+  [59, 1.21905, 0.3186],
+  [47, 1.30032, 0.6729],
+  [50, 1.48608, 0.1616],
+  [74, 1.59057, 0.3112],
+  [62, 1.59057, 0.2877],
+  [50, 1.59057, 0.6819],
+  [50, 1.66023, 0.6861],
+  [47, 1.98659, 0.7272],
+  [71, 1.9982, 0.3136],
+  [59, 1.9982, 0.3115],
+  [47, 2.1143, 0.7556],
+  [47, 2.28845, 0.4618],
+  [69, 2.39294, 0.3071],
+  [45, 2.39294, 0.7253],
+  [57, 2.41616, 0.3139],
+  [45, 2.52065, 0.7823],
+  [45, 2.64836, 0.5193],
+  [43, 2.68319, 0.1666],
+  [67, 2.78768, 0.2822],
+  [43, 2.78768, 0.6692],
+  [55, 2.82251, 0.3179],
+  [43, 2.88056, 0.7168],
+]
+
+export const SAMPLE_RAW_NOTES: NoteEventTime[] = RAW.map(([pitchMidi, startTimeSeconds, amplitude]) => ({
+  pitchMidi,
+  startTimeSeconds,
+  amplitude,
+  durationSeconds: 0.2,
+}))

@@ -30,6 +30,10 @@ It's a **local-first personal tool**: no accounts, no server, no multi-user. Eve
 | Tests | [Vitest](https://vitest.dev) (unit only) |
 | Deploy | GitHub Actions → GitHub Pages |
 
+## Bundled model
+
+Audio-to-tab transcription (experimental) runs Spotify's [Basic Pitch](https://github.com/spotify/basic-pitch) note-detection model entirely in the browser — no server, no upload. The TensorFlow.js weights in `public/transcribe-model/` (`model.json` + `group1-shard1of1.bin`, ~0.92 MB) are copied verbatim from the [`@spotify/basic-pitch`](https://www.npmjs.com/package/@spotify/basic-pitch) npm package (v1.0.1, Apache-2.0); inference runs on [`@tensorflow/tfjs`](https://github.com/tensorflow/tfjs) via its WebGL backend. The heavy deps and the model load lazily (dynamic `import()`), so they stay out of the initial bundle.
+
 ## Getting started
 
 Requires the versions pinned in `.tool-versions` (Node 24, pnpm 11). The project ships its own `.npmrc` pointing at the public npm registry.
