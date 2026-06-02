@@ -7,6 +7,7 @@ import { importFiles } from '../persistence/import'
 import { createBlankScore } from '../persistence/newScore'
 import { Tracks } from './Tracks'
 import { KeyboardHelp } from './KeyboardHelp'
+import { TranscribeModal } from './TranscribeModal'
 
 export function Sidebar() {
   const files = useStore((s) => s.files)
@@ -14,6 +15,7 @@ export function Sidebar() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
+  const [transcribeOpen, setTranscribeOpen] = useState(false)
 
   async function onPick(ev: JSX.TargetedEvent<HTMLInputElement, Event>) {
     const input = ev.currentTarget
@@ -90,6 +92,9 @@ export function Sidebar() {
         </button>
         <button type="button" onClick={() => inputRef.current?.click()}>
           Add…
+        </button>
+        <button type="button" onClick={() => setTranscribeOpen(true)}>
+          Transcribe…
         </button>
         <input
           ref={inputRef}
@@ -179,6 +184,7 @@ export function Sidebar() {
       )}
       <Tracks />
       <KeyboardHelp />
+      {transcribeOpen && <TranscribeModal onClose={() => setTranscribeOpen(false)} />}
     </aside>
   )
 }
