@@ -23,10 +23,6 @@
 //   • a played note shorter than COLLAPSE_WINDOW_SEC apart from its neighbour would be swallowed.
 import type { NoteEventTime } from './basicPitch'
 
-/** Tempo baked into the output. Only affects the score's tempo marking — every note is a quarter
- *  regardless, so BPM doesn't change note placement here. Tempo detection is future work; hardcoded. */
-export const HARDCODED_BPM = 120
-
 /** alphaTex duration denominator emitted for every note (4 = quarter note). */
 export const FIXED_DURATION_DENOMINATOR = 4
 

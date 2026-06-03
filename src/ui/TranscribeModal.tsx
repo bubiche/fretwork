@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'preact/hooks'
 import type { JSX } from 'preact'
 import { warm } from '../transcribe/workerClient'
-import { transcribeToNewTab } from '../transcribe/transcribe'
+import { analyzeClip, openNotesAsNewTab, stem, type AnalyzedClip } from '../transcribe/transcribe'
+import { DEFAULT_BPM } from '../transcribe/detectTempo'
 import { startRecording, type RecorderHandle } from '../transcribe/record'
 
 // Cap on clip length (uploads) and recording duration — guards memory and amortizes the model
 // cold-start. 120s per the phase decision; a forgotten-running mic auto-stops here too.
 const MAX_CLIP_SECONDS = 120
 
+// Manual BPM override bounds — deliberately wider than detection's 70–160 band; the user knows best.
+const BPM_INPUT_MIN = 30
+const BPM_INPUT_MAX = 300
+
 type WarmState = 'warming' | 'ready' | 'failed'
-type Phase = 'idle' | 'recording' | 'transcribing'
+// 'review' = inference done; the detected BPM is shown for override before the tab is created.
+type Phase = 'idle' | 'recording' | 'transcribing' | 'review' | 'creating'
 
 interface Clip {
   blob: Blob
@@ -34,8 +40,8 @@ function probeDuration(url: string): Promise<number> {
 }
 
 /**
- * The transcribe-audio flow: pick a file OR record from the mic, preview it, then run it through the
- * audio→tab pipeline (in the inference worker) and open the result as a new tab. Warms the worker on
+ * The transcribe-audio flow: pick a file OR record from the mic, preview it, run inference (in the
+ * worker), review/override the detected tempo, then open the result as a new tab. Warms the worker on
  * open so the model cold-start is paid before the user hits Transcribe. Every edit after the new tab
  * opens still goes through the Command stack — this only mints the file.
  */
@@ -46,6 +52,10 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
   const [progress, setProgress] = useState(0)
   const [elapsed, setElapsed] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  // Inference output held for the review step — overriding the BPM rebuilds from these cached notes
+  // without re-running the model.
+  const [analysis, setAnalysis] = useState<AnalyzedClip | null>(null)
+  const [bpmText, setBpmText] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<RecorderHandle | null>(null)
@@ -87,6 +97,9 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
   function setClipFrom(blob: Blob, name: string) {
     if (clip) URL.revokeObjectURL(clip.url)
     setClip({ blob, name, url: URL.createObjectURL(blob) })
+    // A new clip invalidates any previous inference — back to the pre-transcribe state.
+    setAnalysis(null)
+    setPhase('idle')
   }
 
   async function onPickFile(ev: JSX.TargetedEvent<HTMLInputElement, Event>) {
@@ -105,8 +118,8 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
       setError(`Clip is ${fmt(dur)} — keep it under ${fmt(MAX_CLIP_SECONDS)}.`)
       return
     }
-    if (clip) URL.revokeObjectURL(clip.url)
-    setClip({ blob: file, name: file.name, url })
+    URL.revokeObjectURL(url) // probe-only URL; setClipFrom mints its own
+    setClipFrom(file, file.name)
   }
 
   function stopTimer() {
@@ -159,9 +172,10 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
     setPhase('transcribing')
     setProgress(0)
     try {
-      const name = clip.name === 'Recording' ? 'Recording' : undefined
-      await transcribeToNewTab(clip.blob, name, setProgress)
-      onClose() // the new tab is now the current file (transcribeToNewTab set the store)
+      const result = await analyzeClip(clip.blob, setProgress)
+      setAnalysis(result)
+      setBpmText(String(result.detectedBpm ?? DEFAULT_BPM))
+      setPhase('review')
     } catch (e) {
       console.error('[transcribe] failed', e)
       setError(e instanceof Error ? e.message : 'Transcription failed.')
@@ -169,8 +183,28 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const busy = phase === 'transcribing'
+  // The override field accepts integer BPM in a deliberately wide band; out-of-band disables Create.
+  const bpm = /^\d+$/.test(bpmText.trim()) ? Number(bpmText.trim()) : NaN
+  const bpmValid = Number.isInteger(bpm) && bpm >= BPM_INPUT_MIN && bpm <= BPM_INPUT_MAX
+
+  async function onCreateTab() {
+    if (!clip || !analysis || !bpmValid) return
+    setError(null)
+    setPhase('creating')
+    try {
+      const name = clip.name === 'Recording' ? 'Recording' : stem(clip.name)
+      await openNotesAsNewTab(analysis.notes, name, bpm)
+      onClose() // the new tab is now the current file (openNotesAsNewTab set the store)
+    } catch (e) {
+      console.error('[transcribe] create failed', e)
+      setError(e instanceof Error ? e.message : 'Could not create the tab.')
+      setPhase('review')
+    }
+  }
+
+  const busy = phase === 'transcribing' || phase === 'creating'
   const recording = phase === 'recording'
+  const reviewing = phase === 'review'
   // Require a settled model: a failed warm leaves the worker's load() promise unusable, so
   // Transcribe would error rather than just run slow. Reopening the modal retries the warm.
   const canTranscribe = !!clip && !busy && !recording && warmState === 'ready'
@@ -274,13 +308,44 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {busy && (
+        {phase === 'transcribing' && (
           <div style={{ marginBottom: '0.75rem' }}>
             <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: 4 }}>
               Transcribing… {Math.round(progress * 100)}%
             </div>
             <div style={{ height: 6, background: '#eee', borderRadius: 3, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${Math.round(progress * 100)}%`, background: '#4a6cff', transition: 'width 0.15s' }} />
+            </div>
+          </div>
+        )}
+
+        {(reviewing || phase === 'creating') && analysis && (
+          <div style={{ marginBottom: '0.75rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span>{analysis.detectedBpm !== null ? 'Detected tempo:' : 'Tempo:'}</span>
+              <input
+                type="number"
+                min={BPM_INPUT_MIN}
+                max={BPM_INPUT_MAX}
+                step={1}
+                value={bpmText}
+                disabled={busy}
+                onInput={(e) => setBpmText(e.currentTarget.value)}
+                style={{
+                  width: '4.5rem',
+                  padding: '0.25rem 0.4rem',
+                  border: `1px solid ${bpmValid ? '#ccc' : '#c00'}`,
+                  borderRadius: 4,
+                }}
+              />
+              <span style={{ color: '#666' }}>BPM</span>
+            </label>
+            <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 4 }}>
+              {analysis.detectedBpm === null &&
+                `Couldn't detect a tempo — defaulting to ${DEFAULT_BPM}. `}
+              {bpmValid
+                ? 'Adjust if it sounds off, then create the tab.'
+                : `Enter a whole number between ${BPM_INPUT_MIN} and ${BPM_INPUT_MAX}.`}
             </div>
           </div>
         )}
@@ -292,21 +357,39 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
             {warmState === 'ready' && 'Model ready'}
           </span>
           <span style={{ flex: 1 }} />
-          <button
-            type="button"
-            onClick={onTranscribe}
-            disabled={!canTranscribe}
-            style={{
-              padding: '0.4rem 0.9rem',
-              background: canTranscribe ? '#4a6cff' : '#ccc',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 4,
-              cursor: canTranscribe ? 'pointer' : 'default',
-            }}
-          >
-            Transcribe
-          </button>
+          {reviewing || phase === 'creating' ? (
+            <button
+              type="button"
+              onClick={onCreateTab}
+              disabled={busy || !bpmValid}
+              style={{
+                padding: '0.4rem 0.9rem',
+                background: !busy && bpmValid ? '#4a6cff' : '#ccc',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                cursor: !busy && bpmValid ? 'pointer' : 'default',
+              }}
+            >
+              {phase === 'creating' ? 'Creating…' : 'Create tab'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onTranscribe}
+              disabled={!canTranscribe}
+              style={{
+                padding: '0.4rem 0.9rem',
+                background: canTranscribe ? '#4a6cff' : '#ccc',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                cursor: canTranscribe ? 'pointer' : 'default',
+              }}
+            >
+              Transcribe
+            </button>
+          )}
         </div>
       </div>
     </div>

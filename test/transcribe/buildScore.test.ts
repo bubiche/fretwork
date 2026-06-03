@@ -100,6 +100,19 @@ describe('buildScoreFromNotes', () => {
     expect(pitches).toEqual(MIDI_SEQUENCE)
   })
 
+  // 8.3 plumbing: the detected/overridden BPM must reach the score's tempo marking and survive the
+  // GP7 export → reload that the actual open-as-new-file path performs.
+  it('writes the given BPM as the score tempo, through the GP7 round-trip', () => {
+    const { score } = buildScoreFromNotes(fixtureNotes(), 'Riff', 140)
+    expect(score.tempo).toBe(140)
+    expect(reload(exportGp7Bytes(score, new Settings())).tempo).toBe(140)
+  })
+
+  it('defaults the tempo to 120 when no BPM is passed', () => {
+    const { score } = buildScoreFromNotes(fixtureNotes(), 'Riff')
+    expect(score.tempo).toBe(120)
+  })
+
   it('yields a blank one-bar rest when there are no notes', () => {
     const { score, noteCount } = buildScoreFromNotes([], 'Empty')
     expect(noteCount).toBe(0)

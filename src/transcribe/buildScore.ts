@@ -11,7 +11,8 @@
 // emit an explicit `|` every BEATS_PER_BAR beats to keep 4/4 bars from overflowing into one giant bar.
 import { Settings, importer, model } from '@coderline/alphatab'
 import type { NoteEventTime } from './basicPitch'
-import { quantize, HARDCODED_BPM } from './quantize'
+import { quantize } from './quantize'
+import { DEFAULT_BPM } from './detectTempo'
 import { assignFret } from './fretAssign'
 
 /** 4/4, fixed for now (no time-signature detection). Beats per bar in the generated alphaTex. */
@@ -31,8 +32,11 @@ export interface BuildScoreResult {
  * Build a Score from raw basic-pitch note events: quantize → fret-assign → alphaTex → import. Pure (no
  * persistence, no UI), mirroring buildBlankScore. An empty / all-unplayable input yields a blank one-bar
  * rest so the caller always gets an openable score.
+ *
+ * `bpm` (detected or user-overridden) only sets the score's tempo marking — every note is still a fixed
+ * quarter, so it doesn't move notes until the real quantizer lands.
  */
-export function buildScoreFromNotes(notes: NoteEventTime[], title: string): BuildScoreResult {
+export function buildScoreFromNotes(notes: NoteEventTime[], title: string, bpm: number = DEFAULT_BPM): BuildScoreResult {
   const { notes: quantized, dropped } = quantize(notes)
 
   const beats: string[] = []
@@ -46,15 +50,15 @@ export function buildScoreFromNotes(notes: NoteEventTime[], title: string): Buil
     beats.push(`${pos.fret}.${pos.string}.${q.durationDenominator}`)
   }
 
-  const score = importTex(buildTex(beats), title)
+  const score = importTex(buildTex(beats, bpm), title)
   return { score, dropped, unplayable, noteCount: beats.length }
 }
 
 /** Assemble the alphaTex source: tempo header, then beats grouped into BEATS_PER_BAR-beat bars. */
-function buildTex(beats: string[]): string {
+function buildTex(beats: string[], bpm: number): string {
   // No notes placed → a single empty bar (whole rest), same shape as buildBlankScore's blank score.
   const body = beats.length === 0 ? 'r.1' : groupIntoBars(beats)
-  return `\\tempo ${HARDCODED_BPM}\n.\n${body}`
+  return `\\tempo ${bpm}\n.\n${body}`
 }
 
 function groupIntoBars(beats: string[]): string {
