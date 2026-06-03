@@ -9,6 +9,7 @@ import { selectByBeat, selectByNote, setRangeFocusByBeat } from '../editor/selec
 import { seekToBeat } from '../editor/transport'
 import { clearHistory } from '../editor/HistoryRouter'
 import { SelectionOverlay } from './SelectionOverlay'
+import { ScoreInfoBar } from './ScoreInfoBar'
 
 export function ScoreView() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -135,6 +136,7 @@ export function ScoreView() {
           </button>
         </div>
       )}
+      <ScoreInfoBar />
       <div
         ref={scrollRef}
         style={{ flex: 1, overflow: 'auto', position: 'relative', background: '#fafafa' }}
