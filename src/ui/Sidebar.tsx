@@ -99,7 +99,7 @@ export function Sidebar() {
         <input
           ref={inputRef}
           type="file"
-          accept=".gp,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.musicxml,.mxl,.xml,.capx,.cap,.alphatab"
+          accept=".gp,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.gpx,.musicxml,.mxl,.xml,.capx,.cap,.alphatab"
           multiple
           style={{ display: 'none' }}
           onChange={onPick}
@@ -107,7 +107,7 @@ export function Sidebar() {
       </div>
       {files.length === 0 ? (
         <p style={{ fontSize: '0.8rem', color: '#666', lineHeight: 1.4 }}>
-          Drop a Guitar Pro (.gp, .gp3–.gp8), MusicXML (.musicxml, .mxl), Capella (.capx, .cap),
+          Drop a Guitar Pro (.gp, .gp3–.gp8, .gpx), MusicXML (.musicxml, .mxl), Capella (.capx, .cap),
           or alphaTex (.alphatab) file anywhere on the window, or click <em>Add…</em>.
         </p>
       ) : (

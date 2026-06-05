@@ -32,7 +32,7 @@ export function exportAlphaTex(score: model.Score, settings: Settings): string {
 
 /** Strip a trailing import extension so we can swap in the export one (`song.gp5` → `song`). */
 function baseName(name: string): string {
-  return name.replace(/\.(gp[3-8]?|musicxml|mxl|xml|capx?|alphatab)$/i, '')
+  return name.replace(/\.(gp[3-8]?|gpx|musicxml|mxl|xml|capx?|alphatab)$/i, '')
 }
 
 /** Push a Blob to the browser as a download named `filename`. */
