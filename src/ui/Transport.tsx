@@ -2,6 +2,8 @@ import type { JSX } from 'preact'
 import { useStore } from './hooks/useStore'
 import { setTransport } from '../editor/transport'
 import { setZoom, setLayoutMode } from '../editor/view'
+import { setSoundFont } from '../editor/soundfont'
+import { SOUND_FONTS, type SoundFontId } from '../alphatab/soundfonts'
 import type { LayoutModeOption } from '../editor/store'
 
 export function Transport() {
@@ -9,6 +11,7 @@ export function Transport() {
   const currentFileId = useStore((s) => s.currentFileId)
   const transport = useStore((s) => s.transport)
   const view = useStore((s) => s.view)
+  const soundFont = useStore((s) => s.soundFont)
   const enabled = !!api && !!currentFileId
 
   function onSpeed(ev: JSX.TargetedEvent<HTMLInputElement, Event>) {
@@ -117,6 +120,21 @@ export function Transport() {
         >
           1×
         </button>
+      </label>
+
+      <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+        <span>Sound</span>
+        <select
+          value={soundFont}
+          onChange={(e) => setSoundFont((e.currentTarget as HTMLSelectElement).value as SoundFontId)}
+          disabled={!enabled}
+        >
+          {SOUND_FONTS.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.label}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>

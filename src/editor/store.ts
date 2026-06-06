@@ -1,5 +1,6 @@
 import type { AlphaTabApi } from '@coderline/alphatab'
 import type { BeatRef } from './selection'
+import { loadSoundFontPref, type SoundFontId } from '../alphatab/soundfonts'
 
 export type FileMeta = {
   id: string
@@ -48,6 +49,7 @@ export type StoreState = {
   // range (single-beat selection). Set by Shift+arrows / Shift+click; cleared by any plain nav.
   anchor: BeatRef | null
   selectedString: number
+  soundFont: SoundFontId
   scoreVersion: number
   canUndo: boolean
   canRedo: boolean
@@ -87,6 +89,7 @@ const initialState: StoreState = {
   selection: null,
   anchor: null,
   selectedString: 1,
+  soundFont: loadSoundFontPref(),
   scoreVersion: 0,
   canUndo: false,
   canRedo: false,

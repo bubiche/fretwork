@@ -15,7 +15,8 @@ export function createAlphaTab(container: HTMLElement, scrollElement: HTMLElemen
       enablePlayer: true,
       enableCursor: true,
       enableUserInteraction: false,
-      soundFont: `${base}soundfont/sonivox.sf3`,
+      // No `soundFont` here on purpose: the user-selectable soundfont (possibly two layered
+      // files) is loaded via syncSoundFont() once the player exists — see editor/soundfont.ts.
       scrollElement,
     },
   } as json.SettingsJson)

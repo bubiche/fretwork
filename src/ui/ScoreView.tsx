@@ -5,6 +5,7 @@ import { store, DEFAULT_TRANSPORT } from '../editor/store'
 import { useStore } from './hooks/useStore'
 import { getFileBytes } from '../persistence/db'
 import { applyTransportToApi } from '../editor/transport'
+import { syncSoundFont } from '../editor/soundfont'
 import { selectByBeat, selectByNote, setRangeFocusByBeat } from '../editor/selection'
 import { seekToBeat } from '../editor/transport'
 import { clearHistory } from '../editor/HistoryRouter'
@@ -65,6 +66,12 @@ export function ScoreView() {
     // extension (set by beatMouseDown) isn't immediately collapsed back to a single beat.
     instance.noteMouseDown.on((note) => {
       if (!lastClickSeek && !lastClickShift) selectByNote(note)
+    })
+    // The player instance only exists once a score is loaded; midiLoaded is the first event that
+    // fires with a live player (and unlike playerReady it doesn't wait for a soundfont, which is
+    // exactly what we're about to provide). syncSoundFont() no-ops when already in sync.
+    instance.midiLoaded.on(() => {
+      void syncSoundFont()
     })
     instance.playerStateChanged.on((args) => {
       const t = store.getState().transport
