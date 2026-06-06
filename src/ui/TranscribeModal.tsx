@@ -3,6 +3,7 @@ import type { JSX } from 'preact'
 import { warm } from '../transcribe/workerClient'
 import { analyzeClip, openNotesAsNewTab, stem, type AnalyzedClip } from '../transcribe/transcribe'
 import { DEFAULT_BPM } from '../transcribe/detectTempo'
+import { DEFAULT_GRID_DIVISION, GRID_DIVISIONS, type GridDivision } from '../transcribe/quantize'
 import { startRecording, type RecorderHandle } from '../transcribe/record'
 
 // Cap on clip length (uploads) and recording duration — guards memory and amortizes the model
@@ -56,6 +57,9 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
   // without re-running the model.
   const [analysis, setAnalysis] = useState<AnalyzedClip | null>(null)
   const [bpmText, setBpmText] = useState('')
+  // Finest rhythm subdivision notes snap to. Like the BPM override, changing it only rebuilds the
+  // score from the cached notes — no re-inference.
+  const [division, setDivision] = useState<GridDivision>(DEFAULT_GRID_DIVISION)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<RecorderHandle | null>(null)
@@ -193,7 +197,7 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
     setPhase('creating')
     try {
       const name = clip.name === 'Recording' ? 'Recording' : stem(clip.name)
-      await openNotesAsNewTab(analysis.notes, name, bpm)
+      await openNotesAsNewTab(analysis.notes, name, bpm, division)
       onClose() // the new tab is now the current file (openNotesAsNewTab set the store)
     } catch (e) {
       console.error('[transcribe] create failed', e)
@@ -339,6 +343,22 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
                 }}
               />
               <span style={{ color: '#666' }}>BPM</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <span>Grid:</span>
+              <select
+                value={division}
+                disabled={busy}
+                onInput={(e) => setDivision(Number(e.currentTarget.value) as GridDivision)}
+                style={{ padding: '0.25rem 0.4rem', border: '1px solid #ccc', borderRadius: 4 }}
+              >
+                {GRID_DIVISIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d === 8 ? '8th notes' : d === 16 ? '16th notes' : '32nd notes'}
+                  </option>
+                ))}
+              </select>
+              <span style={{ fontSize: '0.75rem', color: '#999' }}>finest rhythm to snap to</span>
             </label>
             <div style={{ fontSize: '0.75rem', color: '#999', marginTop: 4 }}>
               {analysis.detectedBpm === null &&

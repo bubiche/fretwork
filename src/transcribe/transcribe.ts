@@ -14,6 +14,7 @@ import type { NoteEventTime } from './basicPitch'
 import { decodeToMono22050 } from './decode'
 import { transcribe as runInWorker } from './workerClient'
 import { detectTempo, DEFAULT_BPM } from './detectTempo'
+import { DEFAULT_GRID_DIVISION, type GridDivision } from './quantize'
 import { buildScoreFromNotes } from './buildScore'
 import { exportGp7Bytes } from '../persistence/export'
 import { addFile, listFiles } from '../persistence/db'
@@ -54,12 +55,17 @@ export async function analyzeClip(
 }
 
 /**
- * Build a score from already-analyzed notes at `bpm`, persist it as a new `.gp` library file, and open
- * it. Resolves once the new tab is the current file. A buffer with no detectable notes still opens an
- * empty editable tab.
+ * Build a score from already-analyzed notes at `bpm` on a `division` grid, persist it as a new `.gp`
+ * library file, and open it. Resolves once the new tab is the current file. A buffer with no detectable
+ * notes still opens an empty editable tab.
  */
-export async function openNotesAsNewTab(notes: NoteEventTime[], name: string, bpm: number): Promise<void> {
-  const { score, dropped, unplayable, noteCount } = buildScoreFromNotes(notes, name, bpm)
+export async function openNotesAsNewTab(
+  notes: NoteEventTime[],
+  name: string,
+  bpm: number,
+  division: GridDivision = DEFAULT_GRID_DIVISION,
+): Promise<void> {
+  const { score, dropped, unplayable, noteCount } = buildScoreFromNotes(notes, name, bpm, division)
   console.info(
     `[transcribe] placed ${noteCount} notes · ${dropped.length} dropped by mono collapse · ${unplayable.length} unplayable`,
     { dropped, unplayable },
