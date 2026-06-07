@@ -3,6 +3,7 @@ import type { JSX } from 'preact'
 import { store } from './editor/store'
 import { listFiles } from './persistence/db'
 import { importFiles } from './persistence/import'
+import { seedExampleTab } from './persistence/seedExample'
 import { attachAutosave } from './persistence/autosave'
 import { Sidebar } from './ui/Sidebar'
 import { ScoreView } from './ui/ScoreView'
@@ -13,7 +14,15 @@ import { attachKeyboard } from './input/keyboard'
 
 export function App() {
   useEffect(() => {
-    listFiles().then((files) => store.setState({ files }))
+    void (async () => {
+      const files = await listFiles()
+      const seeded = await seedExampleTab(files)
+      if (seeded) {
+        store.setState({ files: [seeded, ...files], currentFileId: seeded.id })
+      } else {
+        store.setState({ files })
+      }
+    })()
   }, [])
 
   useEffect(() => attachKeyboard(), [])
