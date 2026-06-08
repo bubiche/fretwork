@@ -22,7 +22,7 @@ import { Settings, importer, model } from '@coderline/alphatab'
 import type { NoteEventTime } from './basicPitch'
 import { quantize, DEFAULT_GRID_DIVISION, type GridDivision, type PlacedNote } from './quantize'
 import { DEFAULT_BPM } from './detectTempo'
-import { assignFret, type FretPosition } from './fretAssign'
+import { assignFrets, type FretPosition } from './fretAssign'
 
 export interface BuildScoreResult {
   score: model.Score
@@ -47,13 +47,16 @@ export function buildScoreFromNotes(
 ): BuildScoreResult {
   const { notes: placed, dropped } = quantize(notes, bpm, division)
 
+  // Assign positions over the whole melody at once so the choice for each note accounts for its
+  // neighbours (least hand movement), not just its own lowest fret.
+  const positions = assignFrets(placed.map((p) => p.midi))
   const playable: (PlacedNote & { pos: FretPosition })[] = []
   const unplayable: number[] = []
-  for (const p of placed) {
-    const pos = assignFret(p.midi)
+  placed.forEach((p, i) => {
+    const pos = positions[i]
     if (pos) playable.push({ ...p, pos })
     else unplayable.push(p.midi) // skipped → its cells fall into a gap and render as rest
-  }
+  })
 
   const score = importTex(buildTex(playable, bpm, division), title)
   return { score, dropped, unplayable, noteCount: playable.length }

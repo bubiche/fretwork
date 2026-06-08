@@ -28,16 +28,29 @@ import type { NoteEventTime } from './basicPitch'
 /** Grid divisions selectable in the UI: one cell = 1/division of a whole note (16 = 16th-note grid). */
 export const GRID_DIVISIONS = [8, 16, 32] as const
 export type GridDivision = (typeof GRID_DIVISIONS)[number]
-export const DEFAULT_GRID_DIVISION: GridDivision = 16
+// 8th-note grid by default. A real performance isn't metronomic, and a finer grid faithfully renders
+// every few-ms onset jitter as an off-beat 16th — clean melodies come out littered with syncopation and
+// ties. An 8th grid rounds that jitter back onto the beat (verified on a captured single-line clip: 0/12
+// off-beat onsets, all quarters/halves, vs 1–2 stray 16ths at 16). Real 16th-note playing is the
+// exception, and the UI still offers 16/32 for it.
+export const DEFAULT_GRID_DIVISION: GridDivision = 8
 
 /** Onsets closer together than this are the same attack (harmonics/chord tones share an onset within
  *  ~35 ms on the calibration run). At very fine grids (32nd cells at high BPM) this window exceeds a
- *  cell, so two real notes one cell apart would collapse — accepted; such playing is beyond v2. */
+ *  cell, so two real notes one cell apart would collapse — accepted; such playing is beyond v2.
+ *  (Kept narrow on purpose: widening it lets the keep-loudest collapse swallow a held note's later,
+ *  quieter segments before the same-pitch merge can fuse them, truncating the note.) */
 const COLLAPSE_WINDOW_SEC = 0.05
 
 /** Notes quieter than this fraction of the clip's loudest note are dropped before placement —
  *  calibrated against the pre-onset ghosts (~0.2 vs ~0.7) in the captured fixture run. */
 const AMP_FLOOR_RATIO = 0.3
+
+/** Lowest MIDI pitch we keep. Below the lowest standard-tuning open string (low E2 = 40) is unplayable
+ *  on a 6-string guitar and in practice sub-bass rumble / octave-error ghosts from the model — dropping
+ *  it pre-placement stops a stray low blip from anchoring the grid (cell 0 is the first surviving onset)
+ *  or leaving phantom rests where it would otherwise sit. */
+const MIN_MIDI = 40
 
 /** Same-pitch events whose gap is at most this are segments of one held note. The model emits chain
  *  segments with a gap of exactly 0 (frame-aligned, ~12 ms hop on the captured run); ~2.5 frames of
@@ -78,10 +91,16 @@ export function quantize(
   const dropped: NoteEventTime[] = []
   if (notes.length === 0) return { notes: [], dropped }
 
+  // 0) Pitch gate: drop unplayable sub-bass before anything else, so it can't raise the amplitude floor
+  //    or anchor the grid.
+  const inRange: NoteEventTime[] = []
+  for (const n of notes) (n.pitchMidi >= MIN_MIDI ? inRange : dropped).push(n)
+  if (inRange.length === 0) return { notes: [], dropped }
+
   // 1) Amplitude floor.
-  const maxAmp = Math.max(...notes.map((n) => n.amplitude))
+  const maxAmp = Math.max(...inRange.map((n) => n.amplitude))
   const loud: NoteEventTime[] = []
-  for (const n of notes) (n.amplitude >= maxAmp * AMP_FLOOR_RATIO ? loud : dropped).push(n)
+  for (const n of inRange) (n.amplitude >= maxAmp * AMP_FLOOR_RATIO ? loud : dropped).push(n)
   loud.sort((a, b) => a.startTimeSeconds - b.startTimeSeconds)
 
   // 2) Slot near-simultaneous onsets and keep the loudest (the fundamental).

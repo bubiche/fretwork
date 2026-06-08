@@ -3,7 +3,7 @@ import { Settings, importer, model } from '@coderline/alphatab'
 import type { NoteEventTime } from '../../src/transcribe/basicPitch'
 import { buildScoreFromNotes } from '../../src/transcribe/buildScore'
 import { quantize } from '../../src/transcribe/quantize'
-import { assignFret, STANDARD_TUNING_TEX } from '../../src/transcribe/fretAssign'
+import { assignFret, assignFrets, STANDARD_TUNING_TEX } from '../../src/transcribe/fretAssign'
 import { exportGp7Bytes } from '../../src/transcribe/../persistence/export'
 import { SAMPLE_RAW_NOTES } from './fixtures/sampleRawNotes'
 
@@ -46,18 +46,67 @@ function reload(bytes: Uint8Array): model.Score {
 }
 
 describe('fret assignment', () => {
-  it('places each pitch on a playable string within fret range, reproducing the pitch', () => {
+  // alphaTex string `t` open pitch is STANDARD_TUNING_TEX[t-1]; a position reproduces its pitch when
+  // open + fret === pitch.
+  const reproduces = (midi: number, pos: { string: number; fret: number }) =>
+    STANDARD_TUNING_TEX[pos.string - 1] + pos.fret === midi
+
+  it('places each pitch on a playable string within fret range, reproducing the pitch (greedy primitive)', () => {
     for (const midi of MIDI_SEQUENCE) {
       const pos = assignFret(midi)!
       expect(pos).not.toBeNull()
-      // alphaTex string `t` open pitch is STANDARD_TUNING_TEX[t-1]; pitch = open + fret.
-      expect(STANDARD_TUNING_TEX[pos.string - 1] + pos.fret).toBe(midi)
+      expect(reproduces(midi, pos)).toBe(true)
       expect(pos.fret).toBeGreaterThanOrEqual(0)
     }
   })
 
   it('returns null below the lowest open string', () => {
     expect(assignFret(39)).toBeNull() // a semitone below low E2 (40)
+  })
+
+  it('assigns one position per pitch, each reproducing its pitch', () => {
+    const positions = assignFrets(MIDI_SEQUENCE)
+    expect(positions).toHaveLength(MIDI_SEQUENCE.length)
+    positions.forEach((pos, i) => expect(reproduces(MIDI_SEQUENCE[i], pos!)).toBe(true))
+  })
+
+  it('stays in hand position instead of sliding to the lowest fret each note', () => {
+    // C5 G4 C5 G4. Greedy (lowest fret per note) plays C5 at (string 1, fret 8) but G4 at (1, 3),
+    // sliding the hand 5 frets down and back every step. v2 keeps the hand at position 8 and crosses to
+    // string 2 for G4 — zero fretting-hand movement. This is the headline difference from v1.
+    expect(assignFrets([72, 67, 72, 67])).toEqual([
+      { string: 1, fret: 8 },
+      { string: 2, fret: 8 },
+      { string: 1, fret: 8 },
+      { string: 2, fret: 8 },
+    ])
+  })
+
+  it('prefers an open string when it costs no extra hand movement', () => {
+    // From low E2 (forced onto string 6) the next note A2 is reachable open on string 5 (5,0) or
+    // fretted at (6,5); the open string is the gentle-nudge winner and keeps the hand low.
+    expect(assignFrets([40, 45])).toEqual([
+      { string: 6, fret: 0 },
+      { string: 5, fret: 0 },
+    ])
+  })
+
+  it('carries the hand anchor through an open string instead of resetting to the nut', () => {
+    // C5, open high-E (E4), G4. Plucking the open E does not move the fretting hand, so the open note
+    // inherits the position-8 anchor and G4 stays at (2,8). If an open note reset the anchor to 0 (the
+    // cheap approximation), G4 would drift to the greedy (1,3). This is the discriminating proof of the
+    // anchor-carry mechanism — the hole test below exercises a different (empty-candidate) path.
+    expect(assignFrets([72, 64, 67])).toEqual([
+      { string: 1, fret: 8 },
+      { string: 1, fret: 0 },
+      { string: 2, fret: 8 },
+    ])
+  })
+
+  it('returns null for an unplayable pitch but keeps continuity across the hole', () => {
+    // 39 is below low E and unreachable. The hand position established by C5 must carry across the
+    // null so the following G4 still lands at (2,8), not the greedy (1,3).
+    expect(assignFrets([72, 39, 67])).toEqual([{ string: 1, fret: 8 }, null, { string: 2, fret: 8 }])
   })
 })
 
@@ -84,17 +133,27 @@ describe('quantize (monophonic collapse)', () => {
     // one's end (the E2 chain from the captured fixture run). Zero overlap — the merge must accept
     // abutting segments or every held note splits into repeated shorter notes of the same pitch.
     const notes = [note(40, 0.0, 0.71, 0.0813), note(40, 0.0813, 0.72, 0.0697), note(40, 0.1509, 0.65, 0.2322)]
-    const { notes: kept } = quantize(notes, BPM)
+    const { notes: kept } = quantize(notes, BPM, 16) // pinned to the 16th grid this case was written for
     expect(kept).toEqual([{ midi: 40, startCell: 0, endCell: 3 }]) // one note, 0–0.383 s ≈ 3 cells
   })
 
   it('keeps a deliberately repeated note ("E E") as two notes when the intervals do not overlap', () => {
     const notes = [note(40, 0.0, 0.8, 0.45), note(40, 0.5, 0.8, 0.45)]
-    const { notes: kept } = quantize(notes, BPM)
+    const { notes: kept } = quantize(notes, BPM, 16)
     expect(kept).toEqual([
       { midi: 40, startCell: 0, endCell: 4 },
       { midi: 40, startCell: 4, endCell: 8 },
     ])
+  })
+
+  it('drops sub-low-E pitches before placement (sub-bass rumble / octave-error ghosts)', () => {
+    // 30 is below low E (40); a loud one at the very start would otherwise anchor the grid at cell 0.
+    const blip = note(30, 0.0, 0.8, 0.9)
+    const real = note(45, 0.5, 0.8, 0.6)
+    const { notes: kept, dropped } = quantize([blip, real], BPM, 16)
+    expect(kept.map((n) => n.midi)).toEqual([45])
+    expect(kept[0].startCell).toBe(0) // the real note anchors the grid, not the dropped blip
+    expect(dropped).toContain(blip)
   })
 
   it('drops quiet pre-onset ghosts below the amplitude floor (they would shift the real onset)', () => {
@@ -110,7 +169,7 @@ describe('quantize (grid placement)', () => {
   it('snaps onsets and lengths to cells, anchored so the first onset is cell 0', () => {
     // Leading silence (mic warm-up) must not become rests: first onset 0.7 s in.
     const notes = [note(40, 0.7, 0.8, 0.48), note(45, 1.2, 0.8, 0.23)]
-    const { notes: kept } = quantize(notes, BPM)
+    const { notes: kept } = quantize(notes, BPM, 16)
     expect(kept).toEqual([
       { midi: 40, startCell: 0, endCell: 4 }, // 0.48 s ≈ 4 cells (quarter)
       { midi: 45, startCell: 4, endCell: 6 }, // 0.23 s ≈ 2 cells (eighth)
@@ -119,7 +178,7 @@ describe('quantize (grid placement)', () => {
 
   it('truncates a note still sounding when the next onset arrives (monophonic)', () => {
     const notes = [note(40, 0.0, 0.8, 1.0), note(45, 0.5, 0.8, 0.5)]
-    const { notes: kept } = quantize(notes, BPM)
+    const { notes: kept } = quantize(notes, BPM, 16)
     expect(kept).toEqual([
       { midi: 40, startCell: 0, endCell: 4 },
       { midi: 45, startCell: 4, endCell: 8 },
@@ -146,7 +205,7 @@ describe('quantize (grid placement)', () => {
     // well before the next onset; without gap fill this melody renders eighth-note + eighth-rest
     // pairs — staccato-littered tab for straightforwardly held quarters.
     const notes = [note(40, 0.0, 0.8, 0.2), note(43, 0.5, 0.8, 0.2), note(45, 1.0, 0.8, 0.2)]
-    const { notes: kept } = quantize(notes, BPM)
+    const { notes: kept } = quantize(notes, BPM, 16)
     expect(kept).toEqual([
       { midi: 40, startCell: 0, endCell: 4 },
       { midi: 43, startCell: 4, endCell: 8 },
@@ -158,7 +217,7 @@ describe('quantize (grid placement)', () => {
   // must collapse to the 8-note melody at the clip's actual ~150 BPM. This pins the target output at
   // the unit level.
   it('collapses the real fixture model output to E2 G2 A2 B2 D3 B2 A2 G2', () => {
-    const { notes: kept } = quantize(SAMPLE_RAW_NOTES, 150)
+    const { notes: kept } = quantize(SAMPLE_RAW_NOTES, 150, 16)
     expect(kept.map((n) => n.midi)).toEqual(MIDI_SEQUENCE)
     // The melody is straight quarters at 150 BPM and must come out as exactly that: every onset on a
     // beat, every note held to the next onset (the segment chains merge end-to-end, so no decay gaps
@@ -211,7 +270,7 @@ describe('buildScoreFromNotes', () => {
   })
 
   it('renders a 3-cell note as a single dotted eighth (not eighth + sixteenth)', () => {
-    const beats = allBeats(buildScoreFromNotes([note(40, 0, 0.8, 0.375)], 'Dot', BPM).score)
+    const beats = allBeats(buildScoreFromNotes([note(40, 0, 0.8, 0.375)], 'Dot', BPM, 16).score)
     expect(beats).toHaveLength(1)
     expect(beats[0].duration).toBe(model.Duration.Eighth)
     expect(beats[0].dots).toBe(1)
@@ -240,9 +299,12 @@ describe('buildScoreFromNotes', () => {
   })
 
   it('turns an unplayable pitch into a rest gap instead of compressing the timeline', () => {
-    const notes = [note(39, 0.0, 0.8, 0.48), note(45, 0.5, 0.8, 0.48)] // 39 is below low E
-    const { score, unplayable, noteCount } = buildScoreFromNotes(notes, 'Skip', BPM)
-    expect(unplayable).toEqual([39])
+    // 100 is above the top of the neck (high E + 24 frets = 88) — in range for placement but unreachable,
+    // so it survives the quantizer and becomes a rest at fret-assign. (A *sub*-low-E pitch is dropped
+    // earlier by the quantizer's pitch gate; see the MIN_MIDI test in the quantizer block.)
+    const notes = [note(100, 0.0, 0.8, 0.48), note(45, 0.5, 0.8, 0.48)]
+    const { score, unplayable, noteCount } = buildScoreFromNotes(notes, 'Skip', BPM, 16)
+    expect(unplayable).toEqual([100])
     expect(noteCount).toBe(1)
     const beats = allBeats(score)
     expect(beats.map((b) => b.isRest)).toEqual([true, false])
