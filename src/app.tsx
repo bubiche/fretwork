@@ -11,6 +11,7 @@ import { Transport } from './ui/Transport'
 import { EffectsPanel } from './ui/EffectsPanel'
 import { ExportMenu } from './ui/ExportMenu'
 import { attachKeyboard } from './input/keyboard'
+import { MOD } from './input/shortcuts'
 
 export function App() {
   useEffect(() => {
@@ -87,7 +88,8 @@ export function App() {
       >
         <strong>fretwork</strong>
         <span style={{ color: '#888', fontSize: '0.8rem' }}>
-          Click a note · type 0–9 = fret · ↑/↓ switch string · −/+ = length · Enter plays from here
+          Click a note · type 0–9 = fret · ↑/↓ switch string · −/+ = length · {MOD}-click to move the
+          playhead · Enter plays from here
         </span>
         <span style={{ marginLeft: 'auto' }} />
         <ExportMenu />

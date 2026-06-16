@@ -23,6 +23,7 @@ export const SHORTCUT_GROUPS: ShortcutGroup[] = [
       { keys: '↑ / ↓', action: 'Select string (up / down)' },
       { keys: 'Shift + ← / →', action: 'Extend the selection by one beat (range)' },
       { keys: 'Shift + Click', action: 'Extend the selection to the clicked beat' },
+      { keys: `${MOD} + Click`, action: 'Move the playhead to the clicked beat' },
       { keys: 'Enter', action: 'Play from the selected beat' },
     ],
   },
