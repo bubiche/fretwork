@@ -10,7 +10,7 @@
 // Mirrors createBlankScore (newScore.ts): mint a real GP7 file and point the editor at it, so the new
 // tab is indistinguishable from an imported file — every subsequent edit goes through the Command stack.
 import { Settings } from '@coderline/alphatab'
-import type { NoteEventTime } from './basicPitch'
+import type { NoteEventTime, TranscribeOptions } from './basicPitch'
 import { decodeToMono22050 } from './decode'
 import { transcribe as runInWorker } from './workerClient'
 import { detectTempo, DEFAULT_BPM } from './detectTempo'
@@ -35,16 +35,20 @@ export interface AnalyzedClip {
 /**
  * Decode `input` and run inference + tempo detection. `input` is a `File` (upload) or a `Blob` (mic
  * recording) — indistinguishable past decode.ts. Throws on decode/inference failure. `onProgress`
- * forwards the worker's inference fraction (0..1).
+ * forwards the worker's inference fraction (0..1). `opts` are the basic-pitch detection thresholds
+ * (onset/frame/minNoteLen/freq bounds); changing any of them requires re-running inference (the
+ * thresholds are consumed inside the worker), so the UI re-calls analyzeClip rather than rebuilding
+ * from cached notes the way a BPM/grid change does.
  */
 export async function analyzeClip(
   input: File | Blob,
   onProgress?: (fraction: number) => void,
+  opts?: TranscribeOptions,
 ): Promise<AnalyzedClip> {
   const buf = await input.arrayBuffer()
   const mono = await decodeToMono22050(buf)
 
-  const { notes, backend, inferenceMs } = await runInWorker(mono, undefined, onProgress)
+  const { notes, backend, inferenceMs } = await runInWorker(mono, opts, onProgress)
   const detectedBpm = detectTempo(notes)
   // This raw dump is the whole point — inspect onsets/pitches/durations to calibrate later stages.
   console.info(

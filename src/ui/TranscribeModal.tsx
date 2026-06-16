@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import type { JSX } from 'preact'
 import { warm } from '../transcribe/workerClient'
 import { analyzeClip, openNotesAsNewTab, stem, type AnalyzedClip } from '../transcribe/transcribe'
+import type { TranscribeOptions } from '../transcribe/basicPitch'
 import { DEFAULT_BPM } from '../transcribe/detectTempo'
 import { DEFAULT_GRID_DIVISION, GRID_DIVISIONS, type GridDivision } from '../transcribe/quantize'
 import { startRecording, type RecorderHandle } from '../transcribe/record'
@@ -13,6 +14,19 @@ const MAX_CLIP_SECONDS = 120
 // Manual BPM override bounds — deliberately wider than detection's 70–160 band; the user knows best.
 const BPM_INPUT_MIN = 30
 const BPM_INPUT_MAX = 300
+
+// basic-pitch detection thresholds. Defaults mirror audioToNotes' own fallbacks (`?? 0.25` etc.) so
+// the panel's initial state reproduces the prior behaviour exactly. Unlike BPM/grid (cheap rebuilds
+// from cached notes), these feed the model inside the worker — changing one requires re-running
+// inference, so we invalidate the cached analysis when they change.
+const THRESHOLD_DEFAULTS = {
+  onsetThresh: 0.25,
+  frameThresh: 0.25,
+  minNoteLen: 5,
+  minFreqText: '',
+  maxFreqText: '',
+}
+const MIN_NOTE_LEN_MAX = 50 // ~0.5s at ~11ms/frame; a generous upper bound for the input
 
 type WarmState = 'warming' | 'ready' | 'failed'
 // 'review' = inference done; the detected BPM is shown for override before the tab is created.
@@ -60,6 +74,13 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
   // Finest rhythm subdivision notes snap to. Like the BPM override, changing it only rebuilds the
   // score from the cached notes — no re-inference.
   const [division, setDivision] = useState<GridDivision>(DEFAULT_GRID_DIVISION)
+  // basic-pitch detection thresholds. Changing any of these invalidates a prior analysis (they're
+  // consumed inside the worker), so Transcribe must re-run — see invalidateAnalysis.
+  const [onsetThresh, setOnsetThresh] = useState(THRESHOLD_DEFAULTS.onsetThresh)
+  const [frameThresh, setFrameThresh] = useState(THRESHOLD_DEFAULTS.frameThresh)
+  const [minNoteLen, setMinNoteLen] = useState(THRESHOLD_DEFAULTS.minNoteLen)
+  const [minFreqText, setMinFreqText] = useState(THRESHOLD_DEFAULTS.minFreqText)
+  const [maxFreqText, setMaxFreqText] = useState(THRESHOLD_DEFAULTS.maxFreqText)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<RecorderHandle | null>(null)
@@ -104,6 +125,30 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
     // A new clip invalidates any previous inference — back to the pre-transcribe state.
     setAnalysis(null)
     setPhase('idle')
+  }
+
+  // A threshold change makes the cached analysis stale (it was inferred with the old thresholds, and
+  // BPM/grid rebuild from those cached notes). Drop it and return to the pre-transcribe state so the
+  // review step can never show notes that don't match the current knobs — the user must re-Transcribe.
+  function invalidateAnalysis() {
+    setAnalysis(null)
+    setPhase((p) => (p === 'review' ? 'idle' : p))
+  }
+
+  // Parse an optional frequency-bound field: blank/invalid → null (let basic-pitch use no bound).
+  function parseFreq(text: string): number | null {
+    const n = Number(text.trim())
+    return text.trim() !== '' && Number.isFinite(n) && n > 0 ? n : null
+  }
+
+  function currentOptions(): TranscribeOptions {
+    return {
+      onsetThresh,
+      frameThresh,
+      minNoteLen,
+      minFreqHz: parseFreq(minFreqText),
+      maxFreqHz: parseFreq(maxFreqText),
+    }
   }
 
   async function onPickFile(ev: JSX.TargetedEvent<HTMLInputElement, Event>) {
@@ -176,7 +221,7 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
     setPhase('transcribing')
     setProgress(0)
     try {
-      const result = await analyzeClip(clip.blob, setProgress)
+      const result = await analyzeClip(clip.blob, setProgress, currentOptions())
       setAnalysis(result)
       setBpmText(String(result.detectedBpm ?? DEFAULT_BPM))
       setPhase('review')
@@ -304,6 +349,118 @@ export function TranscribeModal({ onClose }: { onClose: () => void }) {
             <div style={{ fontSize: '0.8rem', color: '#666', marginBottom: 2 }}>{clip.name}</div>
             <audio controls src={clip.url} style={{ width: '100%' }} />
           </div>
+        )}
+
+        {clip && !recording && (
+          <details style={{ marginBottom: '0.75rem', fontSize: '0.85rem' }}>
+            <summary style={{ cursor: 'pointer', color: '#444' }}>Detection settings</summary>
+            <div style={{ padding: '0.5rem 0.25rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: '#999' }}>
+                Tune what the model hears. Denser than the real part? Raise <em>min length</em> or{' '}
+                <em>onset sensitivity</em>. Changing these re-runs the model when you Transcribe.
+              </p>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: '7.5rem', color: '#444' }}>Onset sensitivity</span>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={0.95}
+                  step={0.05}
+                  value={onsetThresh}
+                  disabled={busy}
+                  onInput={(e) => {
+                    setOnsetThresh(Number(e.currentTarget.value))
+                    invalidateAnalysis()
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ width: '2.2rem', textAlign: 'right', color: '#666' }}>{onsetThresh.toFixed(2)}</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: '7.5rem', color: '#444' }}>Sustain threshold</span>
+                <input
+                  type="range"
+                  min={0.05}
+                  max={0.95}
+                  step={0.05}
+                  value={frameThresh}
+                  disabled={busy}
+                  onInput={(e) => {
+                    setFrameThresh(Number(e.currentTarget.value))
+                    invalidateAnalysis()
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <span style={{ width: '2.2rem', textAlign: 'right', color: '#666' }}>{frameThresh.toFixed(2)}</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: '7.5rem', color: '#444' }}>Min note length</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={MIN_NOTE_LEN_MAX}
+                  step={1}
+                  value={minNoteLen}
+                  disabled={busy}
+                  onInput={(e) => {
+                    const n = Math.round(Number(e.currentTarget.value))
+                    if (Number.isFinite(n) && n >= 1 && n <= MIN_NOTE_LEN_MAX) {
+                      setMinNoteLen(n)
+                      invalidateAnalysis()
+                    }
+                  }}
+                  style={{ width: '4rem', padding: '0.2rem 0.3rem', border: '1px solid #ccc', borderRadius: 4 }}
+                />
+                <span style={{ fontSize: '0.75rem', color: '#999' }}>frames (~11ms each)</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: '7.5rem', color: '#444' }}>Freq range</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="min"
+                  value={minFreqText}
+                  disabled={busy}
+                  onInput={(e) => {
+                    setMinFreqText(e.currentTarget.value)
+                    invalidateAnalysis()
+                  }}
+                  style={{ width: '4.5rem', padding: '0.2rem 0.3rem', border: '1px solid #ccc', borderRadius: 4 }}
+                />
+                <span style={{ color: '#999' }}>–</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="max"
+                  value={maxFreqText}
+                  disabled={busy}
+                  onInput={(e) => {
+                    setMaxFreqText(e.currentTarget.value)
+                    invalidateAnalysis()
+                  }}
+                  style={{ width: '4.5rem', padding: '0.2rem 0.3rem', border: '1px solid #ccc', borderRadius: 4 }}
+                />
+                <span style={{ fontSize: '0.75rem', color: '#999' }}>Hz (optional)</span>
+              </label>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setOnsetThresh(THRESHOLD_DEFAULTS.onsetThresh)
+                  setFrameThresh(THRESHOLD_DEFAULTS.frameThresh)
+                  setMinNoteLen(THRESHOLD_DEFAULTS.minNoteLen)
+                  setMinFreqText(THRESHOLD_DEFAULTS.minFreqText)
+                  setMaxFreqText(THRESHOLD_DEFAULTS.maxFreqText)
+                  invalidateAnalysis()
+                }}
+                style={{ alignSelf: 'flex-start', fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}
+              >
+                Reset to defaults
+              </button>
+            </div>
+          </details>
         )}
 
         {error && (

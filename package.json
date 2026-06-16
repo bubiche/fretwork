@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:model": "RUN_MODEL_TESTS=1 vitest run test/transcribe/integration.model.test.ts"
   },
   "dependencies": {
     "@coderline/alphatab": "^1.8.2",
