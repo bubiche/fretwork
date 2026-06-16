@@ -79,12 +79,21 @@ export function Sidebar() {
         width: 240,
         flexShrink: 0,
         borderRight: '1px solid #ddd',
-        padding: '0.75rem',
-        overflowY: 'auto',
         background: '#fff',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '0.5rem',
+          alignItems: 'center',
+          padding: '0.75rem 0.75rem 0.5rem',
+          flexShrink: 0,
+        }}
+      >
         <strong style={{ fontSize: '0.85rem' }}>Files</strong>
         <span style={{ flex: 1 }} />
         <button type="button" onClick={onNew}>
@@ -105,6 +114,7 @@ export function Sidebar() {
           onChange={onPick}
         />
       </div>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 0.75rem' }}>
       {files.length === 0 ? (
         <p style={{ fontSize: '0.8rem', color: '#666', lineHeight: 1.4 }}>
           Drop a Guitar Pro (.gp, .gp3–.gp8, .gpx), MusicXML (.musicxml, .mxl), Capella (.capx, .cap),
@@ -182,8 +192,19 @@ export function Sidebar() {
           })}
         </ul>
       )}
-      <Tracks />
-      <KeyboardHelp />
+      </div>
+      <div
+        style={{
+          flexShrink: 0,
+          maxHeight: '55%',
+          overflowY: 'auto',
+          borderTop: '1px solid #ddd',
+          padding: '0.25rem 0.75rem 0.75rem',
+        }}
+      >
+        <Tracks />
+        <KeyboardHelp />
+      </div>
       {transcribeOpen && <TranscribeModal onClose={() => setTranscribeOpen(false)} />}
     </aside>
   )
