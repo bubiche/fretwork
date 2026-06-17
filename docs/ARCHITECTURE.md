@@ -27,6 +27,7 @@ run commands against it, and assert round-trip equality — no Preact, no DOM, n
 │  Preact UI  (light DOM only)                                    │
 │   Sidebar · ScoreView · SelectionOverlay · Transport            │
 │   EffectsPanel · ExportMenu · Tracks · KeyboardHelp             │
+│   ScoreInfoBar · TranscribeModal                                │
 │   — render + dispatch only; subscribe to store via useStore     │
 └───────────────┬───────────────────────────┬────────────────────┘
                 │ dispatch edits             │ read state
@@ -143,6 +144,60 @@ Three findings about alphaTab internals are load-bearing and easy to regress:
    clipboard/delete paths sever such links symmetrically and re-assign unique ids
    (`commands/structural/linkSurgery.ts`).
 
+## Audio → tab transcription
+
+`src/transcribe/` turns audio into an editable tab. Architecturally it is a **score-creation path**, a
+sibling of `import.ts` and `newScore.ts`: it mints a real GP7 file and opens it as a new tab, so
+everything downstream — rendering, autosave, and every subsequent edit through the Command stack — is
+identical to an imported file. Nothing here touches the command core; it only *produces* a `Score`.
+
+The pipeline (`transcribe.ts` orchestrates it):
+
+```
+File/Blob ─▶ decode (mono 22050 Hz) ─▶ [worker] basic-pitch + tfjs ─▶ note events
+          ─▶ detectTempo (BPM)  ─┐
+                                 ├─▶ quantize (grid) ─▶ assignFrets ─▶ alphaTex ─▶ Score ─▶ GP7 ─▶ new tab
+   user reviews BPM / grid ──────┘
+```
+
+It is split into two halves so the UI can pause between them. `analyzeClip` runs the expensive
+inference once and returns the raw note events **plus** a detected BPM; the user reviews/overrides the
+BPM and grid in `TranscribeModal`; then `openNotesAsNewTab` builds the score from the *cached* notes —
+changing the BPM or grid rebuilds the tab without re-running the model. (The detection thresholds are
+the exception: they feed the model, so changing one re-runs `analyzeClip`.)
+
+Two architectural facts matter here:
+
+- **The Web Worker is the lazy-load boundary.** Inference runs off the main thread
+  (`worker.ts` / `workerClient.ts`) so the UI never freezes during the seconds-long model run. Vite
+  bundles the worker into its own chunk, so tfjs + basic-pitch (the heavy deps, plus the ~0.92 MB
+  model) download only when the user first opens the transcribe panel — never in the entry bundle.
+- **It's a score-creation path, not a command.** Output is just a `Score` opened as a new file, so
+  everything downstream is the ordinary edit/render/autosave flow.
+
+The signal processing in between — `detectTempo` (IOI clustering), `quantize` (monophonic grid
+placement), `fretAssign` (Viterbi position assignment), `buildScore` (alphaTex round-trip) — is
+documented stage by stage in [`docs/TRANSCRIPTION.md`](TRANSCRIPTION.md).
+
+## SoundFonts
+
+The synth's soundfont is selectable (`src/editor/soundfont.ts`, `src/alphatab/soundfonts.ts`). The
+default is **Sonivox** (a general-MIDI bank, `sonivox.sf3`, ~1 MB), loaded on every score. The
+**Classical Guitar** font (`classical_guitar.sf2`, ~19 MB) is opt-in: fetched lazily only when
+selected and **layered on top of** Sonivox, never replacing it.
+
+Two alphaTab-synth findings make this work:
+
+1. **Presets resolve last-import-wins.** The synth searches loaded fonts in reverse, so loading the
+   classical font *after* Sonivox makes guitar programs hit it while bass/drums/metronome fall back to
+   the GM bank. `syncSoundFont` loads the first font with `loadSoundFont(bytes, false)` (replace) and
+   the rest with `true` (append), and is safe to call on every `midiLoaded` — it no-ops when the choice
+   is already applied or the player isn't created yet.
+2. **The synth matches presets by exact bank+program, no fallback.** The classical font ships its one
+   instrument at program 0, so a guitar track on GM program 24/25 would be silent. `src/alphatab/sf2.ts`
+   does minimal SF2 binary surgery — cloning the preset header onto the GM guitar programs in memory
+   (sample data untouched) — so guitar tracks actually sound. The shipped file on disk is left pristine.
+
 ## Persistence
 
 `src/persistence/` is a thin layer, kept out of the editor core:
@@ -151,13 +206,18 @@ Three findings about alphaTab internals are load-bearing and easy to regress:
   (id/name/size/timestamps) and `files` (raw bytes).
 - **`autosave.ts`** — debounced (1 s) **overwrite-in-place** of the current score's GP7 bytes after
   edits, with a flush-on-file-switch so the outgoing file is saved before the score is swapped.
-- **`import.ts`** — loads dropped/picked files (GP, MusicXML, Capella, alphaTex — all import to the
-  same `Score` model) into IndexedDB and the editor.
+- **`import.ts`** — loads dropped/picked files (Guitar Pro `.gp`/`.gp3`–`.gp8`/`.gpx`, MusicXML
+  `.musicxml`/`.mxl`/`.xml`, Capella `.capx`/`.cap`, alphaTex `.alphatab` — all import to the same
+  `Score` model) into IndexedDB and the editor.
 - **`export.ts`** + **`ExportMenu.tsx`** — manual "Export as…" to **Guitar Pro 7 (`.gp`)** via
   `Gp7Exporter` (full fidelity for guitar effects) or **alphaTex (`.alphatab`)** via
   `AlphaTexExporter`. There is no MusicXML/Capella exporter, so a non-GP import exports as `.gp` or
   `.alphatab`, not back to its original format.
 - **`newScore.ts`** — creates a blank score.
+- **`seedExample.ts`** — on a first-ever visit with an empty library, imports the bundled example tab
+  from `public/` so the editor opens with something to look at. Gated by a once-per-browser
+  localStorage flag, so deleting the example sticks across reloads. Once seeded it's an ordinary
+  library file.
 
 Note: the GP7 binary path is the durable format. There is no in-bundle JSON serializer fallback —
 alphaTab's `JsonConverter` is not exported from the runtime entry point — so the clipboard and
