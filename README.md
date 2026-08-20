@@ -71,6 +71,33 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the full picture, and
 
 Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds and publishes the static site to GitHub Pages via the official `actions/deploy-pages` flow.
 
+### Self-hosting with Docker
+
+The output is a static bundle — there's no backend to run — so any static file host works. The image just packages the build so you don't need Node or pnpm on the host:
+
+```sh
+docker compose up -d          # → http://localhost:8080
+```
+
+or without compose:
+
+```sh
+docker build -t fretwork .
+docker run -d -p 8080:80 fretwork
+```
+
+A multi-stage build compiles the bundle on `node:24-alpine` and serves it from `nginx:alpine-slim` (~45 MB total, most of it the bundled soundfonts). Hashed `assets/` are cached immutably; `index.html` and the unhashed files from `public/` stay revalidated so a rebuild actually reaches returning visitors.
+
+**Serving from a subpath.** Vite's `base` is baked into the bundle at build time, so it needs a rebuild rather than a runtime flag. The image defaults to the domain root; for a subpath, pass the build arg (leading *and* trailing slash) and the bundle is served from that path inside the container too:
+
+```sh
+docker build --build-arg BASE_PATH=/fretwork/ -t fretwork .
+```
+
+**HTTPS and the microphone.** `http://localhost:8080` counts as a secure context, so a local container has full functionality. Reaching the container over a LAN IP or bare hostname on plain HTTP does not: browsers block `getUserMedia`, so **mic recording** in the transcribe panel stops working. Everything else — editing, playback, IndexedDB autosave, and transcribing an uploaded audio file — is unaffected. Put it behind a TLS-terminating reverse proxy if you want mic capture off-box.
+
+Note that there's still no server-side state: saved work lives in each browser's IndexedDB, so it isn't shared between devices or visitors.
+
 ## A note on how this was built
 
 fretwork was built with substantial help from AI coding assistants — the architecture, much of the implementation, and the tests were developed in collaboration with Claude. It's a personal project and an experiment in that workflow as much as a guitar-tab editor.

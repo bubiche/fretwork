@@ -1,0 +1,23 @@
+# Host-built artifacts must never enter the image: node_modules carries a darwin esbuild
+# binary that would break the Linux build in a confusing way.
+node_modules
+dist
+dist-ssr
+.vite
+*.tsbuildinfo
+
+.git
+.github
+tmp
+test
+
+.DS_Store
+.idea
+.vscode
+*.swp
+.env
+.env.*
+
+Dockerfile
+.dockerignore
+docker-compose.yml

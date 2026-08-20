@@ -1,0 +1,12 @@
+services:
+  fretwork:
+    build:
+      context: .
+      # Change to a subpath (with leading AND trailing slash) if you serve fretwork somewhere
+      # other than the domain root — it is baked into the bundle, so it needs a rebuild.
+      args:
+        BASE_PATH: /
+    image: fretwork
+    ports:
+      - '8080:80'
+    restart: unless-stopped
